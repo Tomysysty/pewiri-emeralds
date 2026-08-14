@@ -1,0 +1,52 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 200 200" role="img" aria-label="Pewiri Emeralds">
+  <defs>
+    <!-- Rayo recto y puntiagudo -->
+    <path id="rayo" d="M100 6 L107 46 Q100 52 93 46 Z"/>
+    <!-- Rayo ondulado tipo llama -->
+    <path id="llama" d="M100 16 C 108 30, 92 36, 100 54 C 96 38, 106 34, 100 16 Z"/>
+  </defs>
+
+  <g fill="#f7fcf8" stroke="#1f4a3a" stroke-width="2.4" stroke-linejoin="round">
+    <use href="#rayo" transform="rotate(0 100 100)"/>
+    <use href="#rayo" transform="rotate(30 100 100)"/>
+    <use href="#rayo" transform="rotate(60 100 100)"/>
+    <use href="#rayo" transform="rotate(90 100 100)"/>
+    <use href="#rayo" transform="rotate(120 100 100)"/>
+    <use href="#rayo" transform="rotate(150 100 100)"/>
+    <use href="#rayo" transform="rotate(180 100 100)"/>
+    <use href="#rayo" transform="rotate(210 100 100)"/>
+    <use href="#rayo" transform="rotate(240 100 100)"/>
+    <use href="#rayo" transform="rotate(270 100 100)"/>
+    <use href="#rayo" transform="rotate(300 100 100)"/>
+    <use href="#rayo" transform="rotate(330 100 100)"/>
+  </g>
+
+  <g fill="#dfeee4" stroke="#1f4a3a" stroke-width="2" stroke-linejoin="round">
+    <use href="#llama" transform="rotate(15 100 100)"/>
+    <use href="#llama" transform="rotate(45 100 100)"/>
+    <use href="#llama" transform="rotate(75 100 100)"/>
+    <use href="#llama" transform="rotate(105 100 100)"/>
+    <use href="#llama" transform="rotate(135 100 100)"/>
+    <use href="#llama" transform="rotate(165 100 100)"/>
+    <use href="#llama" transform="rotate(195 100 100)"/>
+    <use href="#llama" transform="rotate(225 100 100)"/>
+    <use href="#llama" transform="rotate(255 100 100)"/>
+    <use href="#llama" transform="rotate(285 100 100)"/>
+    <use href="#llama" transform="rotate(315 100 100)"/>
+    <use href="#llama" transform="rotate(345 100 100)"/>
+  </g>
+
+  <!-- Disco central -->
+  <circle cx="100" cy="100" r="52" fill="#f7fcf8" stroke="#1f4a3a" stroke-width="3"/>
+  <circle cx="100" cy="100" r="45" fill="none" stroke="#1f4a3a" stroke-width="1.2" opacity=".55"/>
+
+  <!-- Ojo -->
+  <path d="M68 96 Q100 68 132 96 Q100 124 68 96 Z" fill="#ffffff" stroke="#1f4a3a" stroke-width="2.6" stroke-linejoin="round"/>
+  <circle cx="100" cy="96" r="12" fill="#1f4a3a"/>
+  <circle cx="100" cy="96" r="5.5" fill="#0d2b21"/>
+  <circle cx="104.5" cy="91.5" r="2.2" fill="#f7fcf8" opacity=".9"/>
+
+  <!-- Lágrimas de esmeralda -->
+  <path d="M86 118 C 86 112, 92 108, 92 108 C 92 108, 98 112, 98 118 A 6 6 0 0 1 86 118 Z" fill="#2e8b6f" stroke="#1f4a3a" stroke-width="1.8" stroke-linejoin="round"/>
+  <path d="M106 122 C 106 116, 112 112, 112 112 C 112 112, 118 116, 118 122 A 6 6 0 0 1 106 122 Z" fill="#2e8b6f" stroke="#1f4a3a" stroke-width="1.8" stroke-linejoin="round"/>
+</svg>

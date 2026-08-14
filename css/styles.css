@@ -1,0 +1,281 @@
+/* ============================================================
+   Pewiri Emeralds — identidad visual
+   Fondo verde menta, tipografía serif, líneas finas, sin curvas.
+   ============================================================ */
+
+:root {
+  --fondo: #eaf5ec;
+  --papel: #f7fcf8;
+  --papel-2: #f1f8f2;
+  --linea: #c3d9c9;
+  --linea-fuerte: #1f4a3a;
+  --verde: #1f4a3a;
+  --verde-medio: #2e6b52;
+  --verde-claro: #6fa98c;
+  --texto: #1b3b31;
+  --texto-suave: #5f7d6f;
+  --oro: #9a7b28;
+  --positivo: #15683f;
+  --negativo: #9e3131;
+  --alerta: #8a6d1f;
+
+  /* Playfair Display si algún día se instala; si no, la serif más parecida
+     que ya trae Windows (Constantia / Palatino). */
+  --serif-titulo: "Playfair Display", Constantia, "Palatino Linotype", "Book Antiqua", Georgia, serif;
+  --serif-texto: Cambria, Constantia, Georgia, "Times New Roman", serif;
+}
+
+* { box-sizing: border-box; }
+
+body {
+  margin: 0;
+  background: var(--fondo);
+  color: var(--texto);
+  font-family: var(--serif-texto);
+  font-size: 15px;
+  line-height: 1.6;
+  min-height: 100vh;
+  -webkit-font-smoothing: antialiased;
+}
+
+h1, h2, h3, h4 { margin: 0 0 .4rem; font-weight: 400; color: var(--verde); }
+h1 { font-family: var(--serif-titulo); font-size: 1.1rem; }
+h2 { font-family: var(--serif-titulo); font-size: 2.1rem; font-style: italic; line-height: 1.15; }
+h3 { font-family: var(--serif-titulo); font-size: 1.15rem; }
+h4 {
+  font-family: var(--serif-texto); font-size: .74rem; font-weight: 700;
+  text-transform: uppercase; letter-spacing: .14em; color: var(--verde-medio);
+}
+p { margin: 0 0 .5rem; }
+strong { font-weight: 700; }
+
+/* ---------- Cabecera ---------- */
+.cabecera {
+  position: sticky; top: 0; z-index: 20;
+  display: flex; flex-wrap: wrap; gap: 1.2rem; align-items: center; justify-content: space-between;
+  padding: .85rem 2rem;
+  background: var(--fondo);
+  border-bottom: 1px solid var(--linea);
+}
+.marca { display: flex; align-items: center; gap: .9rem; text-decoration: none; }
+.logo { width: 54px; height: 54px; flex: none; }
+.palabra-marca {
+  font-family: var(--serif-titulo);
+  font-size: 1.45rem; letter-spacing: .13em; text-transform: uppercase;
+  color: var(--verde); white-space: nowrap;
+}
+
+.pestanas { display: flex; flex-wrap: wrap; align-items: center; gap: .2rem; }
+.pestana {
+  border: 1px solid transparent; background: none; color: var(--verde);
+  font-family: var(--serif-texto); font-size: .8rem;
+  text-transform: uppercase; letter-spacing: .17em;
+  padding: .55rem .95rem; cursor: pointer; transition: .18s;
+}
+.pestana:hover { color: var(--verde-medio); border-color: var(--linea); }
+.pestana.activa { border-color: var(--linea-fuerte); color: var(--verde); }
+
+/* ---------- Estructura ---------- */
+#vista { max-width: 1380px; margin: 0 auto; padding: 2rem 2rem 3rem; }
+.encabezado-vista {
+  display: flex; flex-wrap: wrap; gap: 1.2rem; align-items: flex-start; justify-content: space-between;
+  margin-bottom: 1.6rem;
+}
+.encabezado-vista h2 { position: relative; padding-bottom: .7rem; margin-bottom: .6rem; }
+.encabezado-vista h2::after {
+  content: ""; position: absolute; left: 0; bottom: 0;
+  width: 110px; height: 1px; background: var(--verde-claro);
+}
+.dos-columnas { display: grid; grid-template-columns: minmax(0, 1.05fr) minmax(0, .95fr); gap: 1.3rem; align-items: start; }
+@media (max-width: 1100px) { .dos-columnas { grid-template-columns: 1fr; } }
+
+.tarjeta {
+  background: var(--papel);
+  border: 1px solid var(--linea);
+  padding: 1.3rem 1.4rem;
+  margin-bottom: 1.3rem;
+}
+.tarjeta.resultado { border-color: var(--verde-claro); background: var(--papel-2); }
+.tarjeta > h3 { margin-bottom: .6rem; }
+
+.ayuda { color: var(--texto-suave); font-size: .87rem; max-width: 64ch; }
+.pista { display: block; color: var(--texto-suave); font-size: .78rem; margin-top: .25rem; }
+.pista-inline { color: var(--texto-suave); font-size: .75rem; margin-left: .35rem; }
+.vacio { color: var(--texto-suave); font-size: .88rem; font-style: italic; padding: .6rem 0; }
+
+/* ---------- Formularios ---------- */
+.rejilla-2 { display: grid; grid-template-columns: repeat(auto-fit, minmax(220px, 1fr)); gap: 1rem; }
+.rejilla-3 { display: grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap: 1rem; }
+.campo { display: flex; flex-direction: column; min-width: 0; }
+.campo label {
+  font-size: .7rem; text-transform: uppercase; letter-spacing: .1em;
+  color: var(--texto-suave); margin-bottom: .35rem;
+}
+.fila-campo { display: flex; gap: .4rem; }
+.fila-campo input[type="number"] { flex: 1; min-width: 0; }
+.codigo { width: 58px; text-align: center; text-transform: uppercase; }
+
+input, select {
+  background: #ffffff; color: var(--texto);
+  border: 1px solid var(--linea); border-radius: 0;
+  padding: .5rem .6rem; font-size: .95rem; font-family: var(--serif-texto);
+  width: 100%; min-width: 0;
+  transition: border-color .18s, box-shadow .18s;
+}
+input:focus, select:focus {
+  outline: none; border-color: var(--verde);
+  box-shadow: 0 0 0 2px rgba(31, 74, 58, .12);
+}
+input[type="number"] { text-align: right; font-variant-numeric: tabular-nums lining-nums; }
+select { appearance: none; background-image: linear-gradient(45deg, transparent 50%, var(--verde-medio) 50%), linear-gradient(135deg, var(--verde-medio) 50%, transparent 50%); background-position: calc(100% - 15px) 52%, calc(100% - 10px) 52%; background-size: 5px 5px, 5px 5px; background-repeat: no-repeat; padding-right: 1.8rem; }
+.select-compacto { width: auto; max-width: 260px; }
+.casilla { display: flex; align-items: center; gap: .45rem; font-size: .84rem; color: var(--texto-suave); }
+.casilla input { width: auto; accent-color: var(--verde); }
+
+/* ---------- Botones ---------- */
+.boton {
+  background: transparent; color: var(--verde);
+  border: 1px solid var(--linea-fuerte); border-radius: 0;
+  padding: .5rem 1.1rem;
+  font-family: var(--serif-texto); font-size: .74rem;
+  text-transform: uppercase; letter-spacing: .15em;
+  cursor: pointer; transition: .18s; white-space: nowrap;
+}
+.boton:hover { background: var(--verde); color: var(--papel); }
+.boton.primario { background: var(--verde); color: var(--papel); }
+.boton.primario:hover { background: var(--verde-medio); }
+.boton.peligro { color: var(--negativo); border-color: rgba(158, 49, 49, .45); }
+.boton.peligro:hover { background: var(--negativo); color: var(--papel); border-color: var(--negativo); }
+.boton.pequeno { padding: .3rem .7rem; font-size: .65rem; }
+.boton.icono {
+  padding: .3rem .5rem; font-size: .8rem; letter-spacing: 0; line-height: 1;
+  width: auto; border-color: var(--linea); color: var(--texto-suave);
+}
+.boton.icono:hover { background: var(--negativo); border-color: var(--negativo); color: #fff; }
+.fila-botones { display: flex; flex-wrap: wrap; gap: .6rem; align-items: center; margin-top: 1rem; }
+.fila-agregar { display: flex; flex-wrap: wrap; gap: .6rem; margin-top: 1rem; }
+.fila-agregar input { flex: 1; min-width: 140px; }
+.lista-metales { display: grid; grid-template-columns: repeat(auto-fit, minmax(220px, 1fr)); gap: 1rem; }
+
+/* ---------- Tablas ---------- */
+.tabla-envoltura { overflow-x: auto; margin: .8rem 0; }
+table { width: 100%; border-collapse: collapse; font-size: .89rem; }
+th, td { padding: .55rem .6rem; text-align: right; white-space: nowrap; }
+th:first-child, td:first-child { text-align: left; }
+thead th {
+  font-size: .66rem; text-transform: uppercase; letter-spacing: .12em;
+  color: var(--texto-suave); font-weight: 700;
+  border-bottom: 1px solid var(--linea-fuerte); padding-bottom: .45rem;
+}
+tbody tr { border-bottom: 1px solid var(--linea); }
+tbody tr:hover { background: rgba(111, 169, 140, .1); }
+tfoot th { border-top: 1px solid var(--linea-fuerte); font-size: .89rem; color: var(--verde); }
+.tabla-entrada input, .tabla-entrada select { padding: .35rem .45rem; font-size: .88rem; }
+.tabla-entrada td { padding: .4rem .35rem; }
+.celda-calculada { color: var(--verde-medio); font-variant-numeric: tabular-nums lining-nums; }
+.tabla-resultado td, .tabla-resultado th { font-variant-numeric: tabular-nums lining-nums; }
+.fuerte { font-weight: 700; color: var(--verde); }
+.tenue td { opacity: .45; }
+
+.etiqueta-calidad {
+  display: inline-block; min-width: 22px; text-align: center;
+  padding: .05rem .4rem; font-size: .68rem; font-weight: 700;
+  letter-spacing: .08em; border: 1px solid;
+}
+.etiqueta-calidad.baja { border-color: #9b8cc4; color: #5e4f8c; background: #efeaf8; }
+.etiqueta-calidad.media { border-color: #6aa8a8; color: #2c6a6a; background: #e5f2f2; }
+.etiqueta-calidad.alta { border-color: var(--verde-claro); color: var(--verde); background: #e0efe5; }
+
+/* ---------- Resultados ---------- */
+.precio-grande {
+  font-family: var(--serif-titulo); font-style: italic;
+  font-size: 2.6rem; color: var(--verde);
+  font-variant-numeric: tabular-nums lining-nums; line-height: 1.1;
+  margin: .5rem 0 1.2rem;
+}
+.precio-grande span {
+  display: block; font-family: var(--serif-texto); font-style: normal;
+  font-size: .7rem; text-transform: uppercase; letter-spacing: .14em;
+  color: var(--texto-suave); margin-top: .5rem;
+}
+
+.indicadores { display: grid; grid-template-columns: repeat(auto-fit, minmax(150px, 1fr)); gap: .8rem; margin: 1.1rem 0; }
+.indicador { border: 1px solid var(--linea); padding: .7rem .8rem; background: #fff; }
+.indicador span {
+  display: block; font-size: .66rem; text-transform: uppercase;
+  letter-spacing: .1em; color: var(--texto-suave); margin-bottom: .2rem;
+}
+.indicador strong {
+  font-family: var(--serif-titulo); font-size: 1.15rem; font-weight: 400;
+  color: var(--verde); font-variant-numeric: tabular-nums lining-nums;
+}
+.indicador em { display: block; font-size: .76rem; font-style: normal; margin-top: .2rem; }
+
+.bloque-equilibrio, .bloque-metal {
+  border-left: 2px solid var(--verde); background: rgba(111, 169, 140, .13);
+  padding: .8rem 1rem; margin-top: 1rem; font-size: .89rem;
+}
+.bloque-metal { border-left-color: var(--oro); background: rgba(154, 123, 40, .1); }
+.bloque-metal h4 { color: var(--oro); }
+
+.positivo { color: var(--positivo); }
+.negativo { color: var(--negativo); }
+
+.aviso { font-size: .82rem; color: var(--texto-suave); }
+.aviso.alerta { color: var(--alerta); font-weight: 700; }
+
+.item-lista {
+  display: flex; gap: 1rem; align-items: center; justify-content: space-between;
+  padding: .7rem 0; border-bottom: 1px solid var(--linea);
+}
+.item-lista:last-child { border-bottom: none; }
+.item-lista strong { font-family: var(--serif-titulo); font-size: 1rem; color: var(--verde); }
+.item-lista .pista { margin-top: .15rem; }
+
+/* ---------- Gráfica ---------- */
+.grafica { width: 100%; height: auto; }
+.grafica .rejilla { stroke: var(--linea); stroke-width: 1; }
+.grafica .etiqueta-eje {
+  fill: var(--texto-suave); font-size: 11px;
+  font-family: var(--serif-texto); letter-spacing: .04em;
+}
+.grafica .punto { stroke: var(--papel); stroke-width: 1.6; }
+.leyenda {
+  display: flex; flex-wrap: wrap; gap: 1.2rem; justify-content: center;
+  font-size: .72rem; text-transform: uppercase; letter-spacing: .1em; color: var(--texto-suave);
+}
+.leyenda i, .filtro i { display: inline-block; width: 9px; height: 9px; margin-right: .45rem; vertical-align: middle; }
+
+.filtros { display: flex; flex-wrap: wrap; gap: .5rem; margin-bottom: 1rem; }
+.filtro {
+  display: inline-flex; align-items: center; cursor: pointer;
+  border: 1px solid var(--linea); padding: .35rem .8rem;
+  font-size: .68rem; text-transform: uppercase; letter-spacing: .1em;
+  color: var(--texto-suave); transition: .18s;
+}
+.filtro:hover { border-color: var(--verde-claro); }
+.filtro.activo { color: var(--verde); border-color: var(--linea-fuerte); background: #fff; }
+.filtro input { display: none; }
+
+/* ---------- Pie y aviso flotante ---------- */
+.pie {
+  display: flex; flex-wrap: wrap; gap: .6rem 2rem; justify-content: center;
+  border-top: 1px solid var(--linea); margin: 0 2rem;
+  color: var(--texto-suave); font-size: .76rem;
+  padding: 1.4rem 0 2.4rem; text-align: center;
+}
+#toast {
+  position: fixed; left: 50%; bottom: 2rem; transform: translate(-50%, 250%);
+  background: var(--verde); border: 1px solid var(--verde); color: var(--papel);
+  padding: .75rem 1.4rem; font-size: .85rem;
+  transition: transform .28s ease; z-index: 50; max-width: 90vw; text-align: center;
+}
+#toast.visible { transform: translate(-50%, 0); }
+
+@media (max-width: 720px) {
+  .cabecera { padding: .8rem 1.1rem; }
+  .palabra-marca { font-size: 1.1rem; }
+  .logo { width: 42px; height: 42px; }
+  #vista { padding: 1.4rem 1.1rem 2.5rem; }
+  h2 { font-size: 1.7rem; }
+}

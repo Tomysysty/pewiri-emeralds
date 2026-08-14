@@ -1,0 +1,16 @@
+# Respaldos de datos: son información de la empresa, no código.
+esmeraldas-respaldo-*.json
+
+# Sistema operativo
+Thumbs.db
+desktop.ini
+.DS_Store
+
+# Editores
+.vscode/
+.idea/
+*.swp
+
+
+# Comprimidos
+*.zip
