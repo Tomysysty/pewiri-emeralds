@@ -11,7 +11,10 @@
       fecha: Store.hoy(),
       costoTotal: 0,
       cantidadPiedras: 0,
-      distribucion: { baja: { cantidad: 0, quilates: 0 }, media: { cantidad: 0, quilates: 0 }, alta: { cantidad: 0, quilates: 0 } }
+      distribucion: Calc.CALIDADES.reduce(function (o, q) {
+        o[q] = { cantidad: 0, quilates: 0 };
+        return o;
+      }, {})
     };
   }
 
@@ -48,7 +51,8 @@
       '        <thead><tr><th>Calidad</th><th>% del lote</th><th>N.º piedras</th><th>Quilates totales</th><th>Quilate prom.</th></tr></thead>',
       '        <tbody>',
       Calc.CALIDADES.map(function (q) {
-        var d = borrador.distribucion[q];
+        // Los lotes guardados antes de ampliar la escala no traen las calidades nuevas.
+        var d = borrador.distribucion[q] || { cantidad: 0, quilates: 0 };
         return [
           '<tr>',
           '  <td><span class="etiqueta-calidad ' + q + '">' + (cfg.codigoCalidad[q] || '') + '</span> ' + UI.nombreCalidad(q) + '</td>',
@@ -137,9 +141,10 @@
     borrador.costoTotal = Calc.num(form.costoTotal);
     borrador.cantidadPiedras = Calc.num(form.cantidadPiedras);
     Calc.CALIDADES.forEach(function (q) {
+      var d = (form.distribucion || {})[q] || {};
       borrador.distribucion[q] = {
-        cantidad: Calc.num(form.distribucion[q].cantidad),
-        quilates: Calc.num(form.distribucion[q].quilates)
+        cantidad: Calc.num(d.cantidad),
+        quilates: Calc.num(d.quilates)
       };
     });
   }

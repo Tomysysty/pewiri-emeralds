@@ -13,8 +13,14 @@
     empresa: 'Esmeraldas',
     config: {
       // Constantes que carga la dueña. Todo esto se multiplica por detrás.
-      precioQuilate: { baja: 30000, media: 80000, alta: 200000 },
-      codigoCalidad: { baja: 'B', media: 'M', alta: 'A' },
+      precioQuilate: {
+        muyBaja: 12000, baja: 30000, media: 80000,
+        alta: 200000, muyAlta: 450000, exclusiva: 1000000
+      },
+      codigoCalidad: {
+        muyBaja: 'MB', baja: 'B', media: 'M',
+        alta: 'A', muyAlta: 'MA', exclusiva: 'EX'
+      },
       manoObra: 40000,          // costo estándar del joyero por pieza
       manoObraPorGramo: 12000,  // alternativa: costo por gramo trabajado
       metales: {
@@ -27,11 +33,19 @@
       publicidad: 0,
       margenModo: 'sobrePrecio', // 'sobrePrecio' | 'sobreCosto'
       margenMeta: 40,            // %
-      gastosFijosMes: 0
+      gastosFijosMes: 0,
+
+      // SVP-9: peso de cada factor y forma de combinarlos.
+      svp9Pesos: {
+        color: 1, tamano: 1, cristal: 1, claridad: 1, fire: 1,
+        talla: 1, procedencia: 1, tratamiento: 1, appeal: 1
+      },
+      svp9Modo: 'ponderado' // 'ponderado' | 'equilibrado'
     },
     lotes: [],
     piedras: [],
     productos: [],
+    evaluaciones: [],
     historial: [] // { fecha, item, valor }  item: 'esmeralda-alta' | 'oro-18k' | ...
   };
 

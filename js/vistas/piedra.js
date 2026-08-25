@@ -16,10 +16,10 @@
       '    <section class="tarjeta">',
       '      <h3>Datos de la piedra</h3>',
       '      <div class="rejilla-2">',
-      '        <div class="campo"><label>Código</label><input type="text" data-campo="codigo" placeholder="se genera solo"></div>',
+      '        <div class="campo"><label>Código o nombre</label><input type="text" data-campo="codigo" placeholder="Automático"></div>',
       '        <div class="campo"><label>Calidad</label><select data-campo="calidad">',
       Calc.CALIDADES.map(function (q) {
-        return '<option value="' + q + '"' + (q === 'media' ? ' selected' : '') + '>' + UI.nombreCalidad(q) + ' (' + (cfg.codigoCalidad[q] || '') + ') — ' + UI.cop(cfg.precioQuilate[q]) + '/ct</option>';
+        return '<option value="' + q + '"' + (q === 'media' ? ' selected' : '') + '>' + UI.nombreCalidad(q) + ' (' + (cfg.codigoCalidad[q] || '') + '), ' + UI.cop(cfg.precioQuilate[q]) + '/ct</option>';
       }).join(''),
       '        </select></div>',
       '        <div class="campo"><label>Peso en quilates</label><input type="number" min="0" step="0.01" data-campo="quilates" value="1"></div>',

@@ -3,11 +3,16 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1">
-  <title>Pewiri Emeralds · Calculadora de precios</title>
+  <meta name="robots" content="noindex, nofollow">
+  <meta name="description" content="Herramienta interna de Pewiri Emeralds: caracterización SVP-9 de esmeraldas y cálculo de precios de lotes, piedras y productos.">
+  <meta name="theme-color" content="#eaf5ec">
+  <title>Pewiri Emeralds · Caracterización y precios</title>
   <link rel="stylesheet" href="css/styles.css">
   <link rel="icon" href="img/logo.svg">
 </head>
 <body>
+  <div class="ambiente" aria-hidden="true"></div>
+  <a class="salto-contenido" href="#vista">Saltar al contenido</a>
 
   <header class="cabecera">
     <a class="marca" href="#" onclick="return false;">
@@ -16,7 +21,10 @@
       <span class="palabra-marca">Pewiri Emeralds</span>
     </a>
     <nav class="pestanas">
-      <button class="pestana activa" data-vista="lote">Lote</button>
+      <span class="pildora" aria-hidden="true"></span>
+      <button class="pestana activa" data-vista="inicio">Inicio</button>
+      <button class="pestana" data-vista="caracterizacion">Caracterización</button>
+      <button class="pestana" data-vista="lote">Lote</button>
       <button class="pestana" data-vista="piedra">Piedra</button>
       <button class="pestana" data-vista="producto">Producto</button>
       <button class="pestana" data-vista="mercado">Mercado</button>
@@ -34,9 +42,13 @@
   <div id="toast"></div>
 
   <script src="js/calc.js"></script>
+  <script src="js/svp9.js"></script>
+  <script src="js/iconos.js"></script>
   <script src="js/ui.js"></script>
   <script src="js/store.js"></script>
   <script src="js/chart.js"></script>
+  <script src="js/vistas/inicio.js"></script>
+  <script src="js/vistas/caracterizacion.js"></script>
   <script src="js/vistas/lote.js"></script>
   <script src="js/vistas/piedra.js"></script>
   <script src="js/vistas/producto.js"></script>

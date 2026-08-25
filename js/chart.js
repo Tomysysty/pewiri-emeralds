@@ -112,5 +112,142 @@
     contenedor.appendChild(leyenda);
   }
 
-  global.Grafica = { linea: linea };
+  /* ---------------------------------------------------------------
+   * radar() — la "huella digital" de la esmeralda.
+   *   ejes:   [{ clave, nombre }]  (el orden define el giro, empezando arriba)
+   *   series: [{ nombre, color, valores: { clave: 1..10 } }]
+   * ------------------------------------------------------------- */
+  function radar(contenedor, ejes, series, opciones) {
+    opciones = opciones || {};
+    contenedor.innerHTML = '';
+
+    var W = 620, H = 560;
+    var cx = W / 2, cy = H / 2 - 6;
+    var R = 170;
+    var MAX = opciones.max || 10;
+    var n = ejes.length;
+
+    var svg = svgEl('svg', {
+      viewBox: '0 0 ' + W + ' ' + H,
+      class: 'radar',
+      preserveAspectRatio: 'xMidYMid meet'
+    });
+
+    function angulo(i) { return (Math.PI * 2 * i / n) - Math.PI / 2; }
+    function punto(i, valor) {
+      var a = angulo(i);
+      var r = (valor / MAX) * R;
+      return [cx + Math.cos(a) * r, cy + Math.sin(a) * r];
+    }
+    function poligono(valores) {
+      return valores.map(function (v, i) {
+        var p = punto(i, v);
+        return p[0].toFixed(1) + ',' + p[1].toFixed(1);
+      }).join(' ');
+    }
+
+    // Anillos de la escala
+    [2, 4, 6, 8, 10].forEach(function (nivel) {
+      var vals = ejes.map(function () { return nivel; });
+      svg.appendChild(svgEl('polygon', {
+        points: poligono(vals),
+        class: 'anillo' + (nivel === 10 ? ' borde' : '')
+      }));
+    });
+
+    // Ejes y etiquetas
+    ejes.forEach(function (eje, i) {
+      var extremo = punto(i, MAX);
+      svg.appendChild(svgEl('line', {
+        x1: cx, y1: cy, x2: extremo[0], y2: extremo[1], class: 'eje'
+      }));
+
+      var a = angulo(i);
+      var lx = cx + Math.cos(a) * (R + 34);
+      var ly = cy + Math.sin(a) * (R + 34);
+      var cos = Math.cos(a);
+      var anclaje = cos > 0.25 ? 'start' : (cos < -0.25 ? 'end' : 'middle');
+
+      var etiqueta = svgEl('text', {
+        x: lx, y: ly, class: 'eje-nombre', 'text-anchor': anclaje
+      });
+      etiqueta.textContent = eje.nombre.toUpperCase();
+      svg.appendChild(etiqueta);
+
+      if (series.length === 1) {
+        var valor = svgEl('text', {
+          x: lx, y: ly + 17, class: 'eje-valor', 'text-anchor': anclaje
+        });
+        valor.textContent = series[0].valores[eje.clave];
+        svg.appendChild(valor);
+      }
+    });
+
+    // Números de la escala sobre el eje vertical
+    [2, 4, 6, 8, 10].forEach(function (nivel) {
+      var p = punto(0, nivel);
+      var t = svgEl('text', { x: p[0] + 7, y: p[1] + 4, class: 'escala-num' });
+      t.textContent = nivel;
+      svg.appendChild(t);
+    });
+
+    // Series
+    series.forEach(function (s) {
+      var vals = ejes.map(function (e) { return Math.max(0, Math.min(MAX, Number(s.valores[e.clave]) || 0)); });
+      svg.appendChild(svgEl('polygon', {
+        points: poligono(vals),
+        fill: s.color,
+        'fill-opacity': series.length > 1 ? 0.16 : 0.24,
+        stroke: s.color,
+        'stroke-width': 2.2,
+        'stroke-linejoin': 'round'
+      }));
+      vals.forEach(function (v, i) {
+        var p = punto(i, v);
+        var c = svgEl('circle', { cx: p[0], cy: p[1], r: 4.5, fill: s.color, class: 'punto' });
+        var titulo = svgEl('title');
+        titulo.textContent = ejes[i].nombre + ': ' + v + '/10' + (series.length > 1 ? ' · ' + s.nombre : '');
+        c.appendChild(titulo);
+        svg.appendChild(c);
+      });
+    });
+
+    contenedor.appendChild(svg);
+
+    if (series.length > 1) {
+      var leyenda = document.createElement('div');
+      leyenda.className = 'leyenda';
+      series.forEach(function (s) {
+        var item = document.createElement('span');
+        item.innerHTML = '<i style="background:' + s.color + '"></i>' + s.nombre;
+        leyenda.appendChild(item);
+      });
+      contenedor.appendChild(leyenda);
+    }
+
+    return svg;
+  }
+
+  /* ---------------------------------------------------------------
+   * miniHuella() — la huella de una piedra, en miniatura.
+   * Devuelve el SVG como texto para incrustarlo en listas y fichas:
+   * cada evaluación guardada se reconoce por su forma, no por su código.
+   * ------------------------------------------------------------- */
+  function miniHuella(ejes, valores, tam) {
+    var s = tam || 38, c = s / 2, R = s / 2 - 3, MAX = 10, n = ejes.length;
+    function vertices(escala) {
+      return ejes.map(function (eje, i) {
+        var a = (Math.PI * 2 * i / n) - Math.PI / 2;
+        var v = typeof escala === 'number' ? escala : Math.max(0, Math.min(MAX, Number(valores[eje.clave]) || 0));
+        var r = (v / MAX) * R;
+        return (c + Math.cos(a) * r).toFixed(1) + ',' + (c + Math.sin(a) * r).toFixed(1);
+      }).join(' ');
+    }
+    return '<svg class="mini-huella" viewBox="0 0 ' + s + ' ' + s + '" aria-hidden="true">' +
+      '<polygon class="mh-marco" points="' + vertices(MAX) + '"/>' +
+      '<polygon class="mh-forma" points="' + vertices() + '"/>' +
+      '</svg>';
+  }
+
+  global.Grafica = { linea: linea, radar: radar, miniHuella: miniHuella };
 })(window);

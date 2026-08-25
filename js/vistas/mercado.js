@@ -3,9 +3,12 @@
   'use strict';
 
   var COLORES = {
+    'esmeralda-exclusiva': '#4a6fa5',
+    'esmeralda-muyAlta': '#a4453f',
     'esmeralda-alta': '#1f4a3a',
     'esmeralda-media': '#3f8f7a',
     'esmeralda-baja': '#8b7cb8',
+    'esmeralda-muyBaja': '#9aa8a0',
     'oro-18k': '#9a7b28',
     'oro-14k': '#c0a250',
     'plata-925': '#7b8f88'

@@ -21,7 +21,7 @@
       Calc.CALIDADES.map(function (q) {
         return [
           '<div class="campo">',
-          '  <label>Calidad ' + UI.nombreCalidad(q) + ' — precio por quilate</label>',
+          '  <label>Calidad ' + UI.nombreCalidad(q) + ', precio por quilate</label>',
           '  <div class="fila-campo">',
           '    <input type="text" class="codigo" data-campo="codigoCalidad.' + q + '" value="' + (c.codigoCalidad[q] || '') + '" maxlength="4" title="Código de la calidad">',
           '    <input type="number" min="0" step="1000" data-campo="precioQuilate.' + q + '" value="' + c.precioQuilate[q] + '">',
@@ -66,6 +66,24 @@
       '      <span class="pista">Con 40 %: sobre precio da un precio más alto que sobre costo. Elige uno y quédate con él.</span>',
       '    </div>',
       '    <div class="campo"><label>Margen meta (%)</label><input type="number" min="0" max="99" step="1" data-campo="margenMeta" value="' + c.margenMeta + '"></div>',
+      '  </div>',
+      '</section>',
+
+      '<section class="tarjeta">',
+      '  <h3>SVP-9 · peso de cada factor</h3>',
+      '  <p class="ayuda">Si todos valen 1, los nueve factores pesan igual. Sube el de un factor para que influya más en el puntaje final (por ejemplo Color en 2 = vale el doble).</p>',
+      '  <div class="rejilla-3">',
+      SVP9.FACTORES.map(function (f) {
+        return '<div class="campo"><label>' + f.nombre + '</label><input type="number" min="0" max="5" step="0.5" data-campo="svp9Pesos.' + f.clave + '" value="' + (c.svp9Pesos[f.clave] === undefined ? 1 : c.svp9Pesos[f.clave]) + '"></div>';
+      }).join(''),
+      '  </div>',
+      '  <div class="campo" style="margin-top:1rem">',
+      '    <label>Cómo se combinan los nueve factores</label>',
+      '    <select data-campo="svp9Modo">',
+      '      <option value="ponderado"' + (c.svp9Modo === 'ponderado' ? ' selected' : '') + '>Promedio ponderado, la suma de los nueve según su peso</option>',
+      '      <option value="equilibrado"' + (c.svp9Modo === 'equilibrado' ? ' selected' : '') + '>Índice equilibrado, castiga el factor más débil</option>',
+      '    </select>',
+      '    <span class="pista">Con promedio, un 2 en Claridad se compensa con dieces en el resto. Con índice equilibrado, no: la piedra baja de nivel.</span>',
       '  </div>',
       '</section>',
 
@@ -121,6 +139,11 @@
       });
       cfg.margenModo = form.margenModo;
 
+      SVP9.FACTORES.forEach(function (f) {
+        cfg.svp9Pesos[f.clave] = Calc.num(form.svp9Pesos[f.clave]);
+      });
+      cfg.svp9Modo = form.svp9Modo;
+
       Store.guardar();
       UI.toast('Configuración guardada. Los cambios de precio quedaron registrados en Mercado.');
     });
@@ -158,7 +181,7 @@
     cont.innerHTML = Object.keys(metales).map(function (k) {
       return [
         '<div class="campo">',
-        '  <label>' + metales[k].nombre + ' — precio por gramo</label>',
+        '  <label>' + metales[k].nombre + ', precio por gramo</label>',
         '  <div class="fila-campo">',
         '    <input type="number" min="0" step="100" data-metal="' + k + '" value="' + metales[k].precioGramo + '">',
         '    <button class="boton icono" data-borrar-metal="' + k + '" title="Eliminar">✕</button>',

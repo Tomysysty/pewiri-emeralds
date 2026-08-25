@@ -1,0 +1,21 @@
+# El sitio son estos mismos archivos: no hay nada que compilar.
+[build]
+  publish = "."
+  command = ""
+
+# Herramienta interna: que no la indexen los buscadores.
+[[headers]]
+  for = "/*"
+  [headers.values]
+    X-Robots-Tag = "noindex, nofollow"
+
+# El video y las fuentes no cambian: que el navegador los guarde.
+[[headers]]
+  for = "/assets/*"
+  [headers.values]
+    Cache-Control = "public, max-age=604800"
+
+[[headers]]
+  for = "/fonts/*"
+  [headers.values]
+    Cache-Control = "public, max-age=31536000, immutable"

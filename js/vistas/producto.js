@@ -177,7 +177,7 @@
         '<tr>',
         '  <td><select data-piedra="' + i + '" data-prop="calidad">',
         Calc.CALIDADES.map(function (q) {
-          return '<option value="' + q + '"' + (q === p.calidad ? ' selected' : '') + '>' + UI.nombreCalidad(q) + ' — ' + UI.cop(cfg.precioQuilate[q]) + '/ct</option>';
+          return '<option value="' + q + '"' + (q === p.calidad ? ' selected' : '') + '>' + UI.nombreCalidad(q) + ', ' + UI.cop(cfg.precioQuilate[q]) + '/ct</option>';
         }).join(''),
         '  </select></td>',
         '  <td><input type="number" min="0" step="0.01" data-piedra="' + i + '" data-prop="quilates" value="' + p.quilates + '"></td>',
@@ -287,7 +287,7 @@
       '  <p>' + r.metal.nombre + ' · ' + UI.numero(r.metal.gramos, 2) + ' g<br>',
       '  A precio de mercado: <strong>' + UI.cop(r.metal.valorMercado) + '</strong> · Lo que costó: <strong>' + UI.cop(r.metal.costo) + '</strong><br>',
       '  Diferencia: <strong class="' + UI.claseSigno(r.metal.diferencia) + '">' + UI.cop(r.metal.diferencia) + ' (' + UI.pct(r.metal.diferenciaPct) + ')</strong>',
-      r.metal.diferencia > 0 ? ' — compraste por debajo del mercado.' : (r.metal.diferencia < 0 ? ' — pagaste por encima del mercado.' : ''),
+      r.metal.diferencia > 0 ? '. Compraste por debajo del mercado.' : (r.metal.diferencia < 0 ? '. Pagaste por encima del mercado.' : ''),
       '  </p>',
       '</div>',
 

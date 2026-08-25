@@ -50,7 +50,10 @@
   }
 
   function nombreCalidad(c) {
-    return { baja: 'Baja', media: 'Media', alta: 'Alta' }[c] || c;
+    return {
+      muyBaja: 'Muy baja', baja: 'Baja', media: 'Media',
+      alta: 'Alta', muyAlta: 'Muy alta', exclusiva: 'Exclusiva'
+    }[c] || c;
   }
 
   function toast(mensaje) {

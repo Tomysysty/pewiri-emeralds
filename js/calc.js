@@ -6,7 +6,7 @@
 (function (global) {
   'use strict';
 
-  var CALIDADES = ['baja', 'media', 'alta'];
+  var CALIDADES = ['muyBaja', 'baja', 'media', 'alta', 'muyAlta', 'exclusiva'];
 
   function num(v) {
     var n = typeof v === 'string' ? parseFloat(v.replace(/[^0-9.,-]/g, '').replace(',', '.')) : Number(v);
