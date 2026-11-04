@@ -247,7 +247,9 @@ strong { font-weight: 700; }
   transform: rotate(45deg);
 }
 .dos-columnas { display: grid; grid-template-columns: minmax(0, 1.05fr) minmax(0, .95fr); gap: 1.3rem; align-items: start; }
-@media (max-width: 1100px) { .dos-columnas { grid-template-columns: 1fr; } }
+/* minmax(0, …): sin eso la columna crece con la tabla más ancha y la página
+   entera se desborda en el celular, en vez de deslizarse solo la tabla. */
+@media (max-width: 1100px) { .dos-columnas { grid-template-columns: minmax(0, 1fr); } }
 
 .tarjeta {
   background: var(--papel);
@@ -433,6 +435,26 @@ tfoot th { border-top: 1px solid var(--linea-fuerte); font-size: .89rem; color: 
   fill: var(--texto-suave); font-size: 11px;
   font-family: var(--serif-texto); letter-spacing: .04em;
 }
+/* Barras: suelen ir en una columna angosta, así que la letra va más grande. */
+.grafica .etiqueta-eje.grande { font-size: 15px; }
+.grafica .etiqueta-eje.destacada { fill: var(--verde); font-weight: 700; }
+.grafica .etiqueta-barra { fill: var(--verde); font-family: var(--sans); font-size: 14px; font-weight: 600; }
+.grafica .barra { transition: opacity .2s; }
+.grafica .barra:hover { opacity: .78; }
+
+/* Mes a mes, en frases: "Noviembre · vendiste … y ganaste …" */
+.meses-lista { margin-top: .6rem; }
+.mes-fila {
+  display: flex; flex-wrap: wrap; justify-content: space-between; align-items: baseline; gap: .2rem 1rem;
+  padding: .55rem 0; border-bottom: 1px solid var(--linea); font-size: .9rem;
+}
+.mes-fila:last-child { border-bottom: none; }
+.mes-fila strong { font-family: var(--serif-titulo); font-weight: 400; font-size: 1rem; color: var(--verde); }
+.mes-fila b { font-weight: 600; }
+
+/* Periodo y modo de la gráfica de precios */
+.controles-grafica { display: flex; flex-wrap: wrap; gap: .8rem 1.2rem; margin-bottom: 1rem; }
+.controles-grafica .campo { flex: 1 1 260px; }
 .grafica .punto { stroke: var(--papel); stroke-width: 1.6; }
 .leyenda {
   display: flex; flex-wrap: wrap; gap: 1.2rem; justify-content: center;
@@ -530,6 +552,8 @@ tfoot th { border-top: 1px solid var(--linea-fuerte); font-size: .89rem; color: 
 .item-lista.con-huella{gap:.9rem;align-items:center}
 .item-lista.con-huella .cuerpo-item{flex:1;min-width:0}
 .item-lista.con-huella:hover .mh-forma{fill-opacity:.5}
+/* Miniatura de foto en la lista (cuando la piedra tiene imagen). */
+.foto-mini{width:40px;height:40px;flex:none;object-fit:cover;border:1px solid var(--linea);background:#fff}
 
 /* ---------- SVP-9: caracterización ---------- */
 .factores { display: grid; gap: .1rem; }
@@ -632,6 +656,102 @@ tfoot th { border-top: 1px solid var(--linea-fuerte); font-size: .89rem; color: 
   font-family: var(--sans); font-size: .58rem; font-weight: 600;
   text-transform: uppercase; letter-spacing: .1em; color: var(--verde-medio);
 }
+.insignia-vendido {
+  display: inline-block; border: 1px solid var(--oro); border-radius: 999px;
+  padding: .1rem .6rem; margin-left: .35rem;
+  font-family: var(--sans); font-size: .58rem; font-weight: 600;
+  text-transform: uppercase; letter-spacing: .1em; color: var(--alerta);
+}
+
+/* ---------- Campos automáticos ----------
+   Se llenan solos (fondo menta, cursiva); al escribir encima quedan a mano
+   y la etiqueta ofrece volver al cálculo. */
+input.es-auto { background: var(--papel-2); color: var(--verde-medio); font-style: italic; }
+.marca-auto {
+  margin-left: .45rem; padding: 0 .45rem; vertical-align: middle;
+  border: 1px solid var(--linea); border-radius: 999px; background: transparent;
+  font-family: var(--sans); font-size: .55rem; font-weight: 600; line-height: 1.6;
+  letter-spacing: .08em; text-transform: uppercase; color: var(--verde-claro);
+}
+.marca-auto:disabled { opacity: 1; cursor: default; }
+.marca-auto:not(:disabled) { color: var(--alerta); border-color: var(--oro); cursor: pointer; }
+.marca-auto:not(:disabled):hover { background: var(--oro); color: #fff; }
+.tabla-entrada input[readonly] { background: var(--papel-2); color: var(--texto-suave); }
+.de-cuantas { font-family: var(--sans); font-size: .66rem; color: var(--texto-suave); margin-left: .3rem; }
+
+/* ---------- Botones segmentados ----------
+   Reemplazan los selects de pocas opciones: se elige con un toque, sin abrir
+   nada. Mismas líneas finas y esquinas rectas que el resto. */
+.campo-completo { grid-column: 1 / -1; }
+.segmentos { display: flex; flex-wrap: wrap; gap: .45rem; }
+.segmento {
+  flex: 1 1 0; min-width: 0; min-height: 44px;
+  display: inline-flex; align-items: center; justify-content: center; gap: .55rem;
+  padding: .5rem .8rem; background: #fff; color: var(--texto);
+  border: 1px solid var(--linea); border-radius: 0;
+  font-family: var(--serif-texto); font-size: .93rem; line-height: 1.2; text-align: left;
+  cursor: pointer; transition: background .18s, border-color .18s, color .18s, box-shadow .18s;
+}
+.segmento:hover { border-color: var(--verde-claro); background: #eef7f0; }
+.segmento:focus-visible { outline: none; box-shadow: 0 0 0 2px rgba(31, 74, 58, .25); }
+.segmento[aria-checked="true"] { background: var(--verde); border-color: var(--verde); color: var(--papel); }
+.segmento .icono { width: 18px; height: 18px; color: var(--verde-claro); }
+.segmento[aria-checked="true"] .icono { color: var(--papel); }
+.segmento small {
+  display: block; margin-top: .12rem;
+  font-family: var(--sans); font-size: .6rem; letter-spacing: .04em; color: var(--texto-suave);
+}
+.segmento[aria-checked="true"] small { color: rgba(247, 252, 248, .8); }
+/* Calidades: tres por fila, con su etiqueta de color. */
+.segmentos.calidades .segmento { flex: 1 1 calc(33.333% - .45rem); justify-content: flex-start; }
+.segmento[aria-checked="true"] .etiqueta-calidad { border-color: rgba(247, 252, 248, .7); }
+/* Sugerencias rápidas (tipo de pieza, otros costos, % de anticipo): más chicas,
+   del ancho de su texto. */
+.segmentos.compactos { margin-top: .5rem; gap: .35rem; }
+.segmentos.compactos .segmento {
+  flex: 0 0 auto; min-height: 30px; padding: .25rem .65rem;
+  font-family: var(--sans); font-size: .68rem; letter-spacing: .03em; color: var(--verde-medio);
+}
+.segmentos.compactos .segmento[aria-checked="true"] { color: var(--papel); }
+@media (max-width: 520px) {
+  .segmentos.calidades .segmento { flex-basis: calc(50% - .45rem); }
+}
+
+/* ---------- Metales en vivo (Configuración) ---------- */
+.fila-mini { display: flex; flex-wrap: wrap; gap: .4rem 1rem; margin-top: .45rem; }
+.fila-mini span {
+  display: inline-flex; align-items: center; gap: .35rem;
+  font-family: var(--sans); font-size: .66rem; color: var(--texto-suave);
+}
+.fila-mini input { width: 4.6rem; padding: .25rem .4rem; font-size: .85rem; }
+
+/* ---------- Estado de Google Drive (pie de página) ---------- */
+.estado-drive { display: inline-flex; align-items: center; gap: .4rem; }
+.estado-drive i { width: 7px; height: 7px; border-radius: 50%; background: var(--verde-claro); flex: none; }
+.estado-drive.enviando i { background: var(--oro); animation: respira 1.4s ease-in-out infinite; }
+.estado-drive.error { color: var(--alerta); }
+.estado-drive.error i { background: var(--alerta); }
+
+/* ---------- Otros costos del producto ---------- */
+.subseccion { margin-top: 1.3rem; padding-top: 1rem; border-top: 1px solid var(--linea); }
+.fila-costo { display: grid; grid-template-columns: minmax(0, 1.6fr) minmax(0, 1fr) auto; gap: .5rem; align-items: center; margin-bottom: .5rem; }
+
+/* ---------- Desplegables (piedras de un producto vendido, agotadas…) ---------- */
+.cuerpo-item { flex: 1; min-width: 0; }
+.desplegable { margin-top: .4rem; font-size: .86rem; }
+.desplegable > summary {
+  cursor: pointer; list-style: none; display: inline-block;
+  font-family: var(--sans); font-size: .62rem; font-weight: 600;
+  letter-spacing: .1em; text-transform: uppercase; color: var(--verde-medio);
+}
+.desplegable > summary::-webkit-details-marker { display: none; }
+.desplegable > summary::before { content: "▸ "; }
+.desplegable[open] > summary::before { content: "▾ "; }
+.desplegable > summary:hover { color: var(--verde); }
+.desplegable ul { margin: .45rem 0 0; padding: 0 0 0 .7rem; list-style: none; border-left: 1px solid var(--linea); }
+.desplegable li { padding: .18rem 0; }
+.desplegable .pista { margin-top: .35rem; }
+.desplegable.grupo { margin-top: 1rem; border-top: 1px solid var(--linea); padding-top: .7rem; }
 
 /* ---------- Entradas: nada aparece de golpe ----------
    Las tarjetas llegan en secuencia al entrar en pantalla, con un escalonado
@@ -674,6 +794,54 @@ tfoot th { border-top: 1px solid var(--linea-fuerte); font-size: .89rem; color: 
   .pestana{min-height:44px;display:inline-flex;align-items:center;justify-content:center}
   .factor-rango{height:34px}
 }
+
+/* ---------- Imágenes de la piedra ---------- */
+.galeria { display: grid; grid-template-columns: repeat(auto-fill, minmax(118px, 1fr)); gap: .7rem; margin-bottom: .4rem; }
+.galeria-item {
+  position: relative; aspect-ratio: 1 / 1; border: 1px solid var(--linea);
+  background: #fff; overflow: hidden;
+}
+.mini-imagen {
+  width: 100%; height: 100%; object-fit: cover; display: block;
+  cursor: zoom-in; transition: transform .35s var(--suave), opacity .3s ease;
+}
+.galeria-item:hover .mini-imagen { transform: scale(1.04); }
+.galeria-item .quitar {
+  position: absolute; top: .4rem; right: .4rem; padding: 0 .5rem; line-height: 1.6;
+  background: rgba(247, 252, 248, .94); color: var(--negativo);
+  border-color: var(--linea); box-shadow: 0 1px 3px rgba(31, 74, 58, .18);
+}
+.galeria-item .quitar:hover { background: var(--negativo); color: #fff; border-color: var(--negativo); }
+
+/* Visor de imagen a pantalla completa */
+.visor {
+  position: fixed; inset: 0; z-index: 90; display: flex; align-items: center; justify-content: center;
+  background: rgba(18, 38, 30, .84); padding: 2rem; animation: visorEntra .25s ease;
+}
+@keyframes visorEntra { from { opacity: 0; } to { opacity: 1; } }
+.visor-cuadro { position: relative; margin: 0; max-width: 92vw; max-height: 90vh; }
+.visor-cuadro img {
+  display: block; max-width: 92vw; max-height: 90vh; object-fit: contain;
+  border: 1px solid var(--linea); background: #fff; box-shadow: 0 20px 60px rgba(0, 0, 0, .4);
+}
+.visor-cerrar {
+  position: absolute; top: .6rem; right: .6rem; width: 38px; height: 38px;
+  border: 1px solid var(--linea); background: rgba(247, 252, 248, .96); color: var(--verde);
+  font-family: var(--sans); font-size: 1.3rem; line-height: 1; cursor: pointer;
+}
+.visor-cerrar:hover { background: var(--verde); color: var(--papel); }
+
+/* ---------- Comparación de dos piedras: fotos lado a lado ---------- */
+.comparar-fotos { display: grid; grid-template-columns: 1fr 1fr; gap: 1rem; margin: .4rem 0 1rem; }
+.comparar-lado { border: 1px solid var(--linea); background: #fff; padding: .6rem; text-align: center; }
+.comparar-foto {
+  aspect-ratio: 1 / 1; overflow: hidden; display: flex; align-items: center; justify-content: center;
+  background: var(--fondo); border: 1px solid var(--linea); margin-bottom: .5rem;
+}
+.comparar-foto img { width: 100%; height: 100%; object-fit: cover; display: block; }
+.comparar-foto .mini-huella { width: 100px; height: 100px; }
+.comparar-vacia { color: var(--texto-suave); font-size: .82rem; font-style: italic; }
+.comparar-nombre { font-family: var(--serif-titulo); font-size: 1.05rem; color: var(--verde); }
 
 /* ---------- Pie y aviso flotante ---------- */
 .pie {

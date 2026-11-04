@@ -161,7 +161,13 @@
     var envio = num(entrada.envio);
     var empaque = num(entrada.empaque);
     var publicidad = num(entrada.publicidad);
-    var otros = num(entrada.otros);
+    // Otros costos con nombre (certificado, engaste…); "otros" es el campo
+    // único de los productos viejos.
+    var otrosCostos = (entrada.otrosCostos || []).map(function (c) {
+      return { nombre: String(c.concepto || '').trim() || 'Otro costo', valor: num(c.valor) };
+    });
+    if (num(entrada.otros)) otrosCostos.unshift({ nombre: 'Otros costos', valor: num(entrada.otros) });
+    var otros = suma(otrosCostos, 'valor');
 
     var costoTotal = valorPiedras + costoMetal + costoManoObra + envio + empaque + publicidad + otros;
 
@@ -184,9 +190,8 @@
       { nombre: 'Mano de obra', valor: costoManoObra },
       { nombre: 'Envío', valor: envio },
       { nombre: 'Empaque', valor: empaque },
-      { nombre: 'Publicidad', valor: publicidad },
-      { nombre: 'Otros', valor: otros }
-    ].map(function (c) {
+      { nombre: 'Publicidad', valor: publicidad }
+    ].concat(otrosCostos.length ? otrosCostos : [{ nombre: 'Otros costos', valor: 0 }]).map(function (c) {
       c.pctCosto = costoTotal ? c.valor / costoTotal : 0;
       c.pctPrecio = precioVenta ? c.valor / precioVenta : 0;
       return c;
@@ -204,9 +209,12 @@
       empaque: empaque,
       publicidad: publicidad,
       otros: otros,
+      otrosCostos: otrosCostos,
       componentes: componentes,
       costoTotal: costoTotal,
       precioVenta: precioVenta,
+      // Si la dueña fijó un precio a mano, ese es el que se cobra.
+      precioFinal: num(entrada.precioDeseado) > 0 ? num(entrada.precioDeseado) : precioVenta,
       utilidad: utilidad,
       margenSobrePrecio: precioVenta ? utilidad / precioVenta : 0,
       margenSobreCosto: costoTotal ? utilidad / costoTotal : 0,
@@ -259,6 +267,61 @@
     };
   }
 
+  /* ---------------------------------------------------------------
+   * REPORTE DE VENTAS
+   * ventas: [{ fecha, precio, pendiente (bool), deuda, costo (o null si
+   * no se sabe) }]. Devuelve los totales y el desglose por mes.
+   * ------------------------------------------------------------- */
+  function reporteVentas(ventas) {
+    var porMes = {};
+    var r = { cantidad: 0, vendido: 0, pendiente: 0, ventasPendientes: 0, utilidad: 0, vendidoConCosto: 0 };
+
+    (ventas || []).forEach(function (v) {
+      var precio = num(v.precio);
+      var mes = String(v.fecha || '').slice(0, 7); // 'AAAA-MM'
+      var m = porMes[mes] = porMes[mes] || { mes: mes, cantidad: 0, vendido: 0, utilidad: 0, sinCosto: 0 };
+      r.cantidad += 1; m.cantidad += 1;
+      r.vendido += precio; m.vendido += precio;
+      if (v.pendiente) { r.pendiente += num(v.deuda); r.ventasPendientes += 1; }
+      if (v.costo !== null && v.costo !== undefined) {
+        var u = precio - num(v.costo);
+        r.utilidad += u; m.utilidad += u;
+        r.vendidoConCosto += precio;
+      } else {
+        m.sinCosto += 1;
+      }
+    });
+
+    r.cobrado = r.vendido - r.pendiente;
+    // El margen solo cuenta las ventas de las que se sabe el costo.
+    r.margen = r.vendidoConCosto ? r.utilidad / r.vendidoConCosto : 0;
+    r.meses = Object.keys(porMes).sort().map(function (k) { return porMes[k]; });
+    return r;
+  }
+
+  /* ---------------------------------------------------------------
+   * PRECIO REAL POR QUILATE
+   * Cuánto se cobró de verdad por quilate en cada calidad, frente al
+   * precio de la tabla. lineas: [{ calidad, quilates (totales), precio }]
+   * ------------------------------------------------------------- */
+  function precioRealPorQuilate(lineas, precioQuilate) {
+    var grupos = {};
+    (lineas || []).forEach(function (l) {
+      var ct = num(l.quilates);
+      if (!ct) return;
+      var g = grupos[l.calidad] = grupos[l.calidad] || { calidad: l.calidad, quilates: 0, precio: 0, ventas: 0 };
+      g.quilates += ct; g.precio += num(l.precio); g.ventas += 1;
+    });
+    return CALIDADES.filter(function (q) { return grupos[q]; }).map(function (q) {
+      var g = grupos[q];
+      var tabla = num(precioQuilate[q]);
+      g.real = g.precio / g.quilates;
+      g.tabla = tabla;
+      g.diferencia = tabla ? (g.real - tabla) / tabla : 0;
+      return g;
+    });
+  }
+
   global.Calc = {
     CALIDADES: CALIDADES,
     num: num,
@@ -266,6 +329,8 @@
     lote: lote,
     producto: producto,
     margenDesdePrecio: margenDesdePrecio,
-    variacion: variacion
+    variacion: variacion,
+    reporteVentas: reporteVentas,
+    precioRealPorQuilate: precioRealPorQuilate
   };
 })(typeof window !== 'undefined' ? window : globalThis);

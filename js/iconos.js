@@ -23,7 +23,16 @@
     ficha: '<path d="M6.4 3h7.4l4.2 4.2v13.8H6.4z"/><path d="M13.8 3v4.2H18"/><path d="M9.2 12.4h6.2M9.2 16.2h4.4"/>',
     escala: '<path d="M3 9.2h18v5.6H3z"/><path d="M7 9.2v2.6M11 9.2v2.6M15 9.2v2.6M19 9.2v2.6"/>',
     huella: '<path d="M12 3.2 19 7.4v9.2L12 20.8 5 16.6V7.4z"/><path d="M12 7.6 15.6 9.7v4.6L12 16.4 8.4 14.3V9.7z"/><circle cx="12" cy="12" r="1.2"/>',
-    base: '<path d="M12 3.4 21 8l-9 4.6L3 8z"/><path d="M3 12.2 12 16.8 21 12.2M3 16.4 12 21l9-4.6"/>'
+    base: '<path d="M12 3.4 21 8l-9 4.6L3 8z"/><path d="M3 12.2 12 16.8 21 12.2M3 16.4 12 21l9-4.6"/>',
+    imagen: '<rect x="3" y="4.5" width="18" height="15"/><circle cx="8.6" cy="9.4" r="1.6"/><path d="M3 17l5.8-5.8 3.1 3.1 2-2 4.1 4.2"/>',
+
+    // Botones de venta: qué se vende, cómo se paga y en qué va el pago
+    anillo: '<circle cx="12" cy="14.6" r="6.2"/><path d="M9.3 5.7 12 3l2.7 2.7L12 8.4z"/>',
+    efectivo: '<rect x="2.8" y="6.4" width="18.4" height="11.2"/><circle cx="12" cy="12" r="2.6"/><path d="M6 9.6v4.8M18 9.6v4.8"/>',
+    transferencia: '<path d="M4 8.6h14.6M15 5l3.6 3.6-3.6 3.6"/><path d="M20 15.4H5.4M9 11.8l-3.6 3.6L9 19"/>',
+    pagado: '<circle cx="12" cy="12" r="8.8"/><path d="M8 12.3l2.7 2.7 5.5-5.6"/>',
+    anticipo: '<circle cx="12" cy="12" r="8.8"/><path d="M12 3.2a8.8 8.8 0 0 1 0 17.6z" fill="currentColor" stroke="none"/>',
+    pendiente: '<circle cx="12" cy="12" r="8.8"/><path d="M12 7v5.2l3.4 2"/>'
   };
 
   function sprite() {

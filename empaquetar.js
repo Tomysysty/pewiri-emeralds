@@ -8,7 +8,8 @@
 const fs = require('fs');
 const path = require('path');
 
-const raiz = 'C:/Users/Nitro V15/Documents/esmeraldas-app';
+// Empaqueta la carpeta donde está este archivo: así nunca arma una copia vieja.
+const raiz = __dirname;
 const salida = 'C:/Users/Nitro V15/Documents/esmeraldas-publicar-unico';
 
 const leer = (p) => fs.readFileSync(path.join(raiz, p), 'utf8');
@@ -63,6 +64,8 @@ if (externas.length) throw new Error('Quedaron referencias externas: ' + externa
 fs.mkdirSync(salida, { recursive: true });
 fs.writeFileSync(path.join(salida, 'index.html'), html, 'utf8');
 fs.writeFileSync(path.join(salida, 'robots.txt'), 'User-agent: *\r\nDisallow: /\r\n', 'utf8');
+// En Netlify, que los buscadores tampoco la indexen (lo mismo que netlify.toml).
+fs.writeFileSync(path.join(salida, '_headers'), '/*\r\n  X-Robots-Tag: noindex, nofollow\r\n', 'utf8');
 fs.writeFileSync('C:/Users/Nitro V15/Documents/pewiri-app.html', html, 'utf8');
 
 console.log('Archivo único generado y verificado');

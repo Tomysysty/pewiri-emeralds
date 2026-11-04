@@ -1,8 +1,12 @@
-/* Vista: Lote — costo del lote, reparto por calidad, pesaje y valor de venta. */
+/* Vista: Lote — costo del lote, reparto por calidad, pesaje y valor de venta.
+   Un lote se vende entero o se pasa al inventario como piedras sueltas. */
 (function (global) {
   'use strict';
 
   var borrador = null;
+  // Calidades cuyo % escribió la dueña. Los demás porcentajes se ajustan
+  // solos para que entre todos sumen 100 %.
+  var tocados = {};
 
   function nuevoBorrador() {
     return {
@@ -18,9 +22,24 @@
     };
   }
 
+  /* El borrador vive mientras se navega: si el lote se vendió, se pasó al
+     inventario o se borró en otro momento, se trae su estado actual. */
+  function refrescarEstado() {
+    if (!borrador.id) return;
+    var guardado = Inventario.buscarLote(borrador.id);
+    if (!guardado) { borrador.id = null; delete borrador.vendido; delete borrador.enInventario; return; }
+    ['vendido', 'comprador', 'ventaId', 'fechaVenta', 'enInventario'].forEach(function (k) {
+      if (guardado[k] === undefined) delete borrador[k]; else borrador[k] = guardado[k];
+    });
+  }
+
   function render(raiz) {
     if (!borrador) borrador = nuevoBorrador();
+    refrescarEstado();
+    tocados = {};
     var cfg = Store.datos.config;
+    var sumaCantidades = Calc.CALIDADES.reduce(function (a, q) { return a + Calc.num((borrador.distribucion[q] || {}).cantidad); }, 0);
+    var totalAMano = borrador.cantidadPiedras > 0 && borrador.cantidadPiedras !== sumaCantidades;
 
     raiz.innerHTML = [
       '<div class="encabezado-vista">',
@@ -31,6 +50,8 @@
       '  </div>',
       '</div>',
 
+      borrador.enInventario ? '<div class="bloque-equilibrio" style="margin-bottom:1.2rem"><h4>Este lote ya está en el inventario</h4><p>Sus piedras se crearon el ' + UI.fecha(borrador.enInventario) + '. Cambiar el reparto aquí no cambia esas piedras; se manejan desde Piedra.</p></div>' : '',
+
       '<div class="dos-columnas">',
       '  <div>',
       '    <section class="tarjeta">',
@@ -39,13 +60,13 @@
       '        <div class="campo"><label>Nombre o referencia</label><input type="text" data-campo="nombre" value="' + escapar(borrador.nombre) + '" placeholder="Lote Muzo enero"></div>',
       '        <div class="campo"><label>Fecha</label><input type="date" data-campo="fecha" value="' + borrador.fecha + '"></div>',
       '        <div class="campo"><label>Costo total del lote</label><input type="number" min="0" step="10000" data-campo="costoTotal" value="' + borrador.costoTotal + '"></div>',
-      '        <div class="campo"><label>Cantidad de piedras del lote</label><input type="number" min="0" step="1" data-campo="cantidadPiedras" value="' + borrador.cantidadPiedras + '"></div>',
+      '        <div class="campo"><label>Cantidad de piedras del lote</label><input type="number" min="0" step="1" data-campo="cantidadPiedras" data-auto' + (totalAMano ? ' data-manual="1"' : '') + ' value="' + (borrador.cantidadPiedras || sumaCantidades) + '"><span class="pista">Si no la escribes, es la suma del reparto.</span></div>',
       '      </div>',
       '    </section>',
 
       '    <section class="tarjeta">',
       '      <h3>Reparto por calidad y pesaje</h3>',
-      '      <p class="ayuda">Cuántas piedras hay de cada calidad y cuántos quilates suman. Si prefieres, reparte por porcentaje y el programa calcula las cantidades.</p>',
+      '      <p class="ayuda">Escribe el % de cada calidad y el número de piedras sale solo; los porcentajes que no hayas tocado se ajustan para sumar 100 %. También puedes escribir las cantidades directamente.</p>',
       '      <div class="tabla-envoltura">',
       '      <table class="tabla-entrada">',
       '        <thead><tr><th>Calidad</th><th>% del lote</th><th>N.º piedras</th><th>Quilates totales</th><th>Quilate prom.</th></tr></thead>',
@@ -67,7 +88,6 @@
       '      </table>',
       '      </div>',
       '      <div class="fila-botones">',
-      '        <button class="boton" id="repartir">Repartir por porcentaje</button>',
       '        <span id="avisoCantidad" class="aviso"></span>',
       '      </div>',
       '    </section>',
@@ -80,33 +100,24 @@
       '</div>'
     ].join('');
 
-    raiz.addEventListener('input', function () { sincronizar(raiz); });
-    raiz.addEventListener('change', function () { sincronizar(raiz); });
+    UI.armarAutos(raiz, function () { pctDesdeCantidades(raiz); sincronizar(raiz); });
 
-    UI.$('#repartir', raiz).addEventListener('click', function () {
-      var total = Calc.num(UI.$('[data-campo="cantidadPiedras"]', raiz).value);
-      if (!total) { UI.toast('Primero escribe la cantidad de piedras del lote.'); return; }
-      var pcts = {}, suma = 0;
-      Calc.CALIDADES.forEach(function (q) {
-        pcts[q] = Calc.num(UI.$('[data-pct="' + q + '"]', raiz).value);
-        suma += pcts[q];
-      });
-      if (!suma) { UI.toast('Escribe los porcentajes de cada calidad.'); return; }
-      if (Math.abs(suma - 100) > 0.5) UI.toast('Los porcentajes suman ' + UI.numero(suma) + ' %. Se reparte proporcionalmente.');
-      var asignadas = 0, ultima = null;
-      Calc.CALIDADES.forEach(function (q, i) {
-        var input = UI.$('[data-campo="distribucion.' + q + '.cantidad"]', raiz);
-        if (i < Calc.CALIDADES.length - 1) {
-          var n = Math.round(total * (pcts[q] / suma));
-          input.value = n;
-          asignadas += n;
-        } else {
-          ultima = input;
-        }
-      });
-      if (ultima) ultima.value = Math.max(0, total - asignadas);
+    raiz.addEventListener('input', function (e) {
+      var campo = e.target.getAttribute('data-campo') || '';
+      var q = e.target.getAttribute('data-pct');
+      if (q) {
+        tocados[q] = true;
+        balancearPorcentajes(raiz);
+      } else if (/^distribucion\.\w+\.cantidad$/.test(campo)) {
+        tocados = {};
+        UI.auto(UI.$('[data-campo="cantidadPiedras"]', raiz), sumarCantidades(raiz));
+        pctDesdeCantidades(raiz);
+      } else if (campo === 'cantidadPiedras') {
+        cantidadesDesdePct(raiz, leerPcts(raiz));
+      }
       sincronizar(raiz);
     });
+    raiz.addEventListener('change', function () { sincronizar(raiz); });
 
     UI.$('#nuevoLote', raiz).addEventListener('click', function () {
       borrador = nuevoBorrador();
@@ -114,29 +125,101 @@
     });
 
     UI.$('#guardarLote', raiz).addEventListener('click', function () {
+      refrescarEstado();
       leerBorrador(raiz);
       if (!borrador.nombre) borrador.nombre = 'Lote ' + UI.fecha(borrador.fecha);
-      if (borrador.id) {
-        var i = Store.datos.lotes.findIndex(function (l) { return l.id === borrador.id; });
-        if (i >= 0) Store.datos.lotes[i] = JSON.parse(JSON.stringify(borrador));
+      var i = borrador.id ? Store.datos.lotes.findIndex(function (l) { return l.id === borrador.id; }) : -1;
+      if (i >= 0) {
+        Store.datos.lotes[i] = JSON.parse(JSON.stringify(borrador));
       } else {
         borrador.id = Store.id();
         Store.datos.lotes.unshift(JSON.parse(JSON.stringify(borrador)));
       }
       Store.guardar();
       pintarLista(raiz);
-      UI.toast('Lote guardado.');
+      UI.toast('Lote guardado. Puedes venderlo entero o pasarlo al inventario.');
     });
 
+    pctDesdeCantidades(raiz);
     sincronizar(raiz);
     pintarLista(raiz);
   }
 
-  function escapar(s) { return String(s || '').replace(/"/g, '&quot;'); }
+  function escapar(s) { return String(s === undefined || s === null ? '' : s).replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/"/g, '&quot;'); }
+
+  /* ---------- Porcentajes y cantidades, siempre de acuerdo ---------- */
+
+  function leerPcts(raiz) {
+    var o = {};
+    Calc.CALIDADES.forEach(function (q) { o[q] = Calc.num(UI.$('[data-pct="' + q + '"]', raiz).value); });
+    return o;
+  }
+
+  function sumarCantidades(raiz) {
+    return Calc.CALIDADES.reduce(function (a, q) {
+      return a + Calc.num(UI.$('[data-campo="distribucion.' + q + '.cantidad"]', raiz).value);
+    }, 0);
+  }
+
+  /* No se reescribe el campo que la dueña está escribiendo: le movería el cursor. */
+  function escribirPcts(raiz, pcts) {
+    Calc.CALIDADES.forEach(function (q) {
+      var input = UI.$('[data-pct="' + q + '"]', raiz);
+      if (input === document.activeElement) return;
+      input.value = pcts[q] ? String(Math.round(pcts[q] * 10) / 10) : '';
+    });
+  }
+
+  /* Los % escritos se respetan; lo que falta para 100 se reparte entre los
+     demás en la misma proporción que ya tenían (o por partes iguales). */
+  function balancearPorcentajes(raiz) {
+    var pcts = leerPcts(raiz);
+    var fijos = 0, libres = [];
+    Calc.CALIDADES.forEach(function (q) {
+      if (tocados[q]) fijos += pcts[q]; else libres.push(q);
+    });
+    var resto = Math.max(0, 100 - fijos);
+    var base = libres.reduce(function (a, q) { return a + pcts[q]; }, 0);
+    libres.forEach(function (q) {
+      pcts[q] = base > 0 ? pcts[q] / base * resto : resto / libres.length;
+    });
+    escribirPcts(raiz, pcts);
+    cantidadesDesdePct(raiz, pcts);
+  }
+
+  /* N.º de piedras = total × %. Se redondea por el mayor residuo para que
+     la suma dé exactamente el total. */
+  function cantidadesDesdePct(raiz, pcts) {
+    var total = Calc.num(UI.$('[data-campo="cantidadPiedras"]', raiz).value);
+    var sumaPct = Calc.CALIDADES.reduce(function (a, q) { return a + pcts[q]; }, 0);
+    if (!total || !sumaPct) return;
+    var meta = Math.round(total * Math.min(sumaPct, 100) / 100);
+    var filas = Calc.CALIDADES.map(function (q) {
+      var exacto = total * pcts[q] / 100;
+      return { q: q, n: Math.floor(exacto), resto: exacto - Math.floor(exacto) };
+    });
+    var faltan = meta - filas.reduce(function (a, f) { return a + f.n; }, 0);
+    filas.slice().sort(function (a, b) { return b.resto - a.resto; }).forEach(function (f) {
+      if (faltan > 0 && f.resto > 0) { f.n += 1; faltan -= 1; }
+    });
+    filas.forEach(function (f) {
+      UI.$('[data-campo="distribucion.' + f.q + '.cantidad"]', raiz).value = f.n;
+    });
+  }
+
+  function pctDesdeCantidades(raiz) {
+    var total = Calc.num(UI.$('[data-campo="cantidadPiedras"]', raiz).value) || sumarCantidades(raiz);
+    var pcts = {};
+    Calc.CALIDADES.forEach(function (q) {
+      var n = Calc.num(UI.$('[data-campo="distribucion.' + q + '.cantidad"]', raiz).value);
+      pcts[q] = total ? n / total * 100 : 0;
+    });
+    escribirPcts(raiz, pcts);
+  }
 
   function leerBorrador(raiz) {
     var form = UI.leerFormulario(raiz);
-    borrador.nombre = form.nombre;
+    borrador.nombre = (form.nombre || '').trim();
     borrador.fecha = form.fecha;
     borrador.costoTotal = Calc.num(form.costoTotal);
     borrador.cantidadPiedras = Calc.num(form.cantidadPiedras);
@@ -159,7 +242,15 @@
     });
 
     var aviso = UI.$('#avisoCantidad', raiz);
-    if (borrador.cantidadPiedras && !r.cuadra) {
+    var sumaPct = Calc.CALIDADES.reduce(function (a, q) { return a + Calc.num(UI.$('[data-pct="' + q + '"]', raiz).value); }, 0);
+    var hayPct = Object.keys(tocados).length > 0;
+    if (hayPct && !borrador.cantidadPiedras) {
+      aviso.textContent = 'Escribe cuántas piedras tiene el lote y las cantidades salen solas.';
+      aviso.className = 'aviso alerta';
+    } else if (hayPct && Math.abs(sumaPct - 100) > 0.5) {
+      aviso.textContent = 'Los porcentajes suman ' + UI.numero(sumaPct, 1) + ' %.';
+      aviso.className = 'aviso alerta';
+    } else if (borrador.cantidadPiedras && !r.cuadra) {
       aviso.textContent = 'El reparto suma ' + UI.numero(r.cantidadTotal) + ' piedras y el lote dice ' + UI.numero(borrador.cantidadPiedras) + '.';
       aviso.className = 'aviso alerta';
     } else {
@@ -215,16 +306,48 @@
     return '<div class="indicador"><span>' + titulo + '</span><strong class="' + (clase || '') + '">' + valor + '</strong></div>';
   }
 
+  /* Cada calidad del lote se vuelve un grupo de piedras iguales en el
+     inventario, con el quilate promedio y el costo que le tocó. */
+  function pasarAInventario(lote) {
+    var r = Calc.lote(lote, Store.datos.config.precioQuilate);
+    var grupos = r.detalle.filter(function (d) { return d.cantidad > 0; });
+    if (!grupos.length) { UI.toast('El lote no tiene piedras repartidas por calidad.'); return false; }
+    if (grupos.some(function (d) { return !d.quilates; }) &&
+        !confirm('Hay calidades sin quilates: esas piedras entrarán con peso 0. ¿Continuar?')) return false;
+
+    var nuevos = [];
+    grupos.forEach(function (d) {
+      var codigo = Inventario.siguienteCodigo(d.calidad, nuevos.map(function (p) { return p.codigo; }));
+      nuevos.push({
+        id: Store.id(), fecha: Store.hoy(), codigo: codigo, calidad: d.calidad,
+        quilates: Math.round(d.quilatePromedio * 100) / 100,
+        cantidad: d.cantidad,
+        costo: Math.round(d.costoPorPiedra),
+        nota: 'Del lote ' + lote.nombre,
+        loteId: lote.id
+      });
+    });
+    Array.prototype.unshift.apply(Store.datos.piedras, nuevos);
+    lote.enInventario = Store.hoy();
+    Store.guardar();
+    UI.toast(r.cantidadTotal + ' piedras pasaron al inventario en ' + nuevos.length + ' grupo' + (nuevos.length === 1 ? '' : 's') + '. Están en Piedra.');
+    return true;
+  }
+
   function pintarLista(raiz) {
     var cont = UI.$('#listaLotes', raiz);
     var lotes = Store.datos.lotes;
     if (!lotes.length) { cont.innerHTML = '<p class="vacio">Aún no has guardado lotes.</p>'; return; }
     cont.innerHTML = lotes.map(function (l) {
       var r = Calc.lote(l, Store.datos.config.precioQuilate);
+      var estado = Inventario.estadoLote(l);
       return [
         '<div class="item-lista">',
-        '  <div><strong>' + l.nombre + '</strong><span class="pista">' + UI.fecha(l.fecha) + ' · ' + UI.numero(r.cantidadTotal) + ' piedras · costo ' + UI.cop(l.costoTotal) + ' · venta ' + UI.cop(r.ventaTotal) + '</span></div>',
+        '  <div class="cuerpo-item"><strong>' + escapar(l.nombre) + '</strong>' +
+          (estado.texto ? '<span class="' + estado.clase + '">' + estado.texto + (l.vendido && l.comprador ? ' a ' + escapar(l.comprador) : '') + '</span>' : ''),
+        '  <span class="pista">' + UI.fecha(l.fecha) + ' · ' + UI.numero(r.cantidadTotal) + ' piedras · costo ' + UI.cop(l.costoTotal) + ' · venta ' + UI.cop(r.ventaTotal) + '</span></div>',
         '  <div class="fila-botones">',
+        estado.clave === 'libre' && r.cantidadTotal ? '    <button class="boton pequeno" data-inventario="' + l.id + '" title="Crea las piedras en Piedra para usarlas en productos o venderlas sueltas">Pasar a inventario</button>' : '',
         '    <button class="boton pequeno" data-cargar="' + l.id + '">Abrir</button>',
         '    <button class="boton pequeno peligro" data-borrar="' + l.id + '">Borrar</button>',
         '  </div>',
@@ -232,9 +355,19 @@
       ].join('');
     }).join('');
 
+    UI.$$('[data-inventario]', cont).forEach(function (b) {
+      b.addEventListener('click', function () {
+        var l = Inventario.buscarLote(b.getAttribute('data-inventario'));
+        if (!l) return;
+        if (pasarAInventario(l)) {
+          if (borrador && borrador.id === l.id) { borrador = JSON.parse(JSON.stringify(l)); App.recargar(); }
+          else pintarLista(raiz);
+        }
+      });
+    });
     UI.$$('[data-cargar]', cont).forEach(function (b) {
       b.addEventListener('click', function () {
-        var l = Store.datos.lotes.find(function (x) { return x.id === b.getAttribute('data-cargar'); });
+        var l = Inventario.buscarLote(b.getAttribute('data-cargar'));
         borrador = JSON.parse(JSON.stringify(l));
         App.recargar();
       });
@@ -242,8 +375,12 @@
     UI.$$('[data-borrar]', cont).forEach(function (b) {
       b.addEventListener('click', function () {
         var id = b.getAttribute('data-borrar');
+        var l = Inventario.buscarLote(id);
+        if (l && l.enInventario && !confirm('Las piedras que salieron de «' + l.nombre + '» se quedan en el inventario. ¿Borrar el lote?')) return;
+        if (l && l.vendido && !confirm('«' + l.nombre + '» tiene una venta registrada; la venta se conserva. ¿Borrar el lote?')) return;
         Store.datos.lotes = Store.datos.lotes.filter(function (x) { return x.id !== id; });
         Store.guardar();
+        if (borrador && borrador.id === id) borrador.id = null;
         pintarLista(raiz);
       });
     });

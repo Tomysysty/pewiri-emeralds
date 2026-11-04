@@ -46,7 +46,10 @@
     piedras: [],
     productos: [],
     evaluaciones: [],
-    historial: [] // { fecha, item, valor }  item: 'esmeralda-alta' | 'oro-18k' | ...
+    historial: [], // { fecha, item, valor }  item: 'esmeralda-alta' | 'oro-18k' | ...
+    ventas: [], // { id, fecha, tipo, itemId, itemNombre, comprador, precio, estadoPago, metodoPago, ... }
+    cotizacion: null, // última cotización en vivo (precios.js): { usdOnza:{oro,plata}, trm, actualizado, ... }
+    serieMetales: {}  // onza pura en pesos por fecha, para el historial: { oro: { '2026-11-01': 12627073 } }
   };
 
   function clonar(o) { return JSON.parse(JSON.stringify(o)); }
@@ -65,10 +68,18 @@
     return out;
   }
 
+  /* Los metales los arma la dueña: se toman tal cual se guardaron. Si se
+     fusionaran con los predeterminados, uno que ella borró volvería a aparecer. */
+  function cargar(guardado) {
+    var d = fusionar(PREDETERMINADO, guardado);
+    if (guardado && guardado.config && guardado.config.metales) d.config.metales = guardado.config.metales;
+    return d;
+  }
+
   function leer() {
     try {
       var crudo = localStorage.getItem(CLAVE);
-      return crudo ? fusionar(PREDETERMINADO, JSON.parse(crudo)) : clonar(PREDETERMINADO);
+      return crudo ? cargar(JSON.parse(crudo)) : clonar(PREDETERMINADO);
     } catch (e) {
       console.warn('No se pudo leer el almacenamiento, se usan valores por defecto.', e);
       return clonar(PREDETERMINADO);
@@ -121,7 +132,7 @@
 
   function importar(texto) {
     var entrante = JSON.parse(texto);
-    datos = fusionar(PREDETERMINADO, entrante);
+    datos = cargar(entrante);
     guardar();
   }
 

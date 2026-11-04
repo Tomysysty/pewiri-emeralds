@@ -175,6 +175,8 @@
     vigilarTamano();
     sembrarHistorial();
     mostrar(actual);
+    Precios.iniciar();
+    Drive.iniciar();
   }
 
   global.App = { mostrar: mostrar, recargar: recargar };
