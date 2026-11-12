@@ -6,9 +6,10 @@ inventario y registrar las ventas.
 
 ## Cómo abrirla
 
-- **En este computador:** doble clic en `index.html`. No hay que instalar nada.
-- **En internet (Netlify):** se sube la carpeta que arma `empaquetar.js` (ver
+- **En internet:** <https://tomysysty.github.io/pewiri-emeralds/> (GitHub Pages). Se
+  actualiza sola cada vez que se sube un cambio a la rama `main` (ver
   [Publicar](#publicar)).
+- **En este computador:** doble clic en `index.html`. No hay que instalar nada.
 
 Funciona sin internet. La conexión solo se usa para dos cosas, y si no hay, la app
 sigue igual:
@@ -97,6 +98,22 @@ en **[drive/apps-script.gs](drive/apps-script.gs)**. El enlace y la clave se peg
 
 ## Publicar
 
+La app está publicada con **GitHub Pages**, desde la raíz de la rama `main` de este
+repositorio (Settings → Pages → *Deploy from a branch* → `main` / `(root)`):
+
+- **Dirección:** <https://tomysysty.github.io/pewiri-emeralds/>
+- **Para actualizarla** basta con subir los cambios a `main` (`git push`): GitHub la
+  vuelve a publicar sola en uno o dos minutos. No hay que subir archivos a mano.
+- Es gratis, sin anuncios ni límites de créditos. GitHub Pages solo funciona gratis con
+  el repositorio **público**; en el código no hay claves ni datos del negocio.
+
+El enlace y la clave de Google Drive no van en el código: se pegan en la app, en
+**Configuración → Google Drive**, y quedan solo en ese navegador. Los datos tampoco:
+cada dirección web guarda los suyos, así que al cambiar de dirección se pasan con
+**Exportar / Importar respaldo**.
+
+### Archivo único (para mandar o usar sin internet)
+
 ```bash
 node empaquetar.js
 ```
@@ -104,12 +121,12 @@ node empaquetar.js
 Arma toda la app en un solo `index.html` (código, estilos, tipografías, logo y video
 adentro) y lo deja en:
 
-- `../esmeraldas-publicar-unico/` → **esta carpeta se arrastra a Netlify**
-  (incluye `robots.txt` y `_headers` para que no la indexen los buscadores);
-- `../pewiri-app.html` → el mismo archivo, para mandarlo o abrirlo con doble clic.
+- `../pewiri-app.html` → para mandarlo por correo o abrirlo con doble clic;
+- `../esmeraldas-publicar-unico/` → la misma app lista para cualquier otro hosting de
+  páginas estáticas (incluye `robots.txt` y `_headers` para que no la indexen los
+  buscadores).
 
-Hay que volver a correrlo después de cada cambio. El enlace de Drive no va dentro del
-archivo publicado: se pega en la app.
+Hay que volver a correrlo después de cada cambio si se usa este archivo.
 
 ## SVP-9: la huella digital
 
