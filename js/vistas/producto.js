@@ -17,6 +17,7 @@
       nombre: '',
       tipoPieza: '',
       fecha: Store.hoy(),
+      cantidad: 1,
       piedras: [],
       metal: { tipo: primerMetal, modo: 'gramaje', gramos: 0, precioMercadoGramo: (cfg.metales[primerMetal] || {}).precioGramo || 0, precioCompraGramo: 0, valorManual: 0 },
       manoObra: { modo: 'directo', cobro: 'pieza', valor: cfg.manoObra, valorPorGramo: cfg.manoObraPorGramo },
@@ -37,6 +38,7 @@
   function normalizar(p) {
     var cfg = Store.datos.config;
     p.piedras = p.piedras || [];
+    p.cantidad = Inventario.piezas(p);
     p.manoObra = p.manoObra || { modo: 'directo', valor: cfg.manoObra, valorPorGramo: cfg.manoObraPorGramo };
     if (!p.manuales) {
       var def = cfg.metales[(p.metal || {}).tipo] || {};
@@ -74,6 +76,8 @@
     var cfg = Store.datos.config;
     var m = borrador.metal;
     var man = borrador.manuales;
+    var ep = Inventario.estadoProducto(borrador);
+    var parcial = ep.vendidas > 0 && !borrador.vendido;
 
     raiz.innerHTML = [
       '<div class="encabezado-vista">',
@@ -86,9 +90,17 @@
 
       borrador.vendido ? [
         '<div class="bloque-equilibrio" style="margin-bottom:1.2rem">',
-        '  <h4>Este producto ya se vendió</h4>',
-        '  <p>Vendido' + (borrador.comprador ? ' a <strong>' + escapar(borrador.comprador) + '</strong>' : '') + (borrador.fechaVenta ? ' el ' + UI.fecha(borrador.fechaVenta) : '') + '. ',
+        '  <h4>' + (ep.total > 1 ? 'Ya se vendieron las ' + ep.total + ' piezas' : 'Este producto ya se vendió') + '</h4>',
+        '  <p>Vendido' + (ep.compradores.length === 1 ? ' a <strong>' + escapar(ep.compradores[0]) + '</strong>' : (ep.compradores.length > 1 ? ' a ' + escapar(ep.compradores.join(', ')) : '')) +
+          (ep.ventas.length === 1 && borrador.fechaVenta ? ' el ' + UI.fecha(borrador.fechaVenta) : '') + '. ',
         '  La venta no cambia. Si guardas, se crea un producto nuevo parecido (necesita piedras disponibles).</p>',
+        '</div>'
+      ].join('') : '',
+
+      parcial ? [
+        '<div class="bloque-equilibrio" style="margin-bottom:1.2rem">',
+        '  <h4>Se han vendido ' + ep.vendidas + ' de ' + ep.total + ' piezas</h4>',
+        '  <p>Quedan ' + ep.disponibles + ' por vender. Si agregas piezas, las piedras se apartan del inventario; no puedes bajar de ' + ep.vendidas + ' piezas.</p>',
         '</div>'
       ].join('') : '',
 
@@ -103,11 +115,14 @@
       }).join('') + '</div></div>',
       '        <div class="campo"><label>Nombre del producto</label><input type="text" data-campo="nombre" data-auto' + (man.nombre ? ' data-manual="1"' : '') + ' value="' + escapar(borrador.nombre) + '"><span class="pista">Se arma con el tipo, las piedras y el metal.</span></div>',
       '        <div class="campo"><label>Fecha</label><input type="date" data-campo="fecha" value="' + borrador.fecha + '"></div>',
+      '        <div class="campo"><label>Piezas iguales</label><input type="number" min="' + Math.max(1, ep.vendidas) + '" step="1" data-campo="cantidad" value="' + borrador.cantidad + '"><span class="pista" id="pistaPiezas"></span></div>',
       '        <div class="campo campo-completo"><label>Venta</label><select id="estadoVenta" data-segmentos>',
-      '          <option value="no" data-icono="anillo" data-sub="disponible para vender"' + (borrador.vendido ? '' : ' selected') + '>No vendido</option>',
+      '          <option value="no" data-icono="anillo" data-sub="' + escapar(borrador.vendido
+        ? 'deshacer la última venta'
+        : (parcial ? ep.disponibles + ' de ' + ep.total + ' por vender' : (ep.total > 1 ? ep.total + ' piezas por vender' : 'disponible para vender'))) + '"' + (borrador.vendido ? '' : ' selected') + '>' + (parcial ? 'Quedan por vender' : 'No vendido') + '</option>',
       '          <option value="si" data-icono="pagado" data-sub="' + escapar(borrador.vendido
-        ? 'a ' + (borrador.comprador || 'comprador sin nombre') + (borrador.fechaVenta ? ' · ' + UI.fecha(borrador.fechaVenta) : '')
-        : 'registra comprador y pago') + '"' + (borrador.vendido ? ' selected' : '') + '>Vendido</option>',
+        ? (ep.ventas.length > 1 ? ep.ventas.length + ' ventas · ' + ep.compradores.join(', ') : 'a ' + (borrador.comprador || 'comprador sin nombre') + (borrador.fechaVenta ? ' · ' + UI.fecha(borrador.fechaVenta) : ''))
+        : (parcial ? 'vender más piezas' : 'registra comprador y pago')) + '"' + (borrador.vendido ? ' selected' : '') + '>Vendido</option>',
       '        </select></div>',
       '      </div>',
       '    </section>',
@@ -116,7 +131,7 @@
       '      <h3>Esmeraldas de la pieza</h3>',
       '      <div class="tabla-envoltura">',
       '        <table class="tabla-entrada">',
-      '          <thead><tr><th>Piedra</th><th>Quilates c/u</th><th>Cantidad</th><th>Valor</th><th></th></tr></thead>',
+      '          <thead><tr><th>Piedra</th><th>Quilates c/u</th><th>Por pieza</th><th>Valor</th><th></th></tr></thead>',
       '          <tbody id="filasPiedras"></tbody>',
       '        </table>',
       '      </div>',
@@ -233,10 +248,10 @@
       var p = Inventario.buscarPiedra(id);
       if (!p) return;
       leerBorrador(raiz);
-      var maximo = Inventario.disponibles(p, excluido());
+      var maximo = porPieza(Inventario.disponibles(p, excluido()));
       var fila = borrador.piedras.find(function (x) { return x.piedraId === id; });
       if (fila) {
-        if (fila.cantidad >= maximo) { UI.toast('Ya usaste todas las ' + p.codigo + ' disponibles (' + maximo + ').'); return; }
+        if (fila.cantidad >= maximo) { UI.toast('Con ' + borrador.cantidad + ' pieza' + (borrador.cantidad === 1 ? '' : 's') + ', de ' + p.codigo + ' alcanzan ' + maximo + ' por pieza.'); return; }
         fila.cantidad += 1;
       } else {
         borrador.piedras.push({ piedraId: p.id, codigo: p.codigo, calidad: p.calidad, quilates: p.quilates, cantidad: 1 });
@@ -263,6 +278,10 @@
      salvo que esté vendido: esas piedras ya salieron y no vuelven. */
   function excluido() { return borrador.vendido ? null : borrador.id; }
 
+  /* La tabla de piedras es por pieza: de las que hay, cuántas caben en cada
+     una de las piezas iguales. */
+  function porPieza(hay) { return Math.floor(hay / Math.max(1, borrador.cantidad)); }
+
   function guardar(raiz) {
     refrescarEstado();
     sincronizar(raiz);
@@ -275,15 +294,24 @@
       copia.fecha = Store.hoy();
     }
 
-    // No se pueden montar más piedras de las que hay.
+    // No se pueden vender menos piezas de las que ya se vendieron.
+    var vendidas = copia.id ? Inventario.estadoProducto(copia).vendidas : 0;
+    if (copia.cantidad < vendidas) {
+      UI.toast('Ya se vendieron ' + vendidas + ' piezas: el producto no puede tener menos.');
+      return false;
+    }
+
+    // No se pueden montar más piedras de las que hay: por pieza × piezas.
     for (var i = 0; i < copia.piedras.length; i++) {
       var fila = copia.piedras[i];
       if (!fila.piedraId) continue;
       var p = Inventario.buscarPiedra(fila.piedraId);
       if (!p) continue; // la piedra se borró del inventario: la fila queda como cotización
       var hay = Inventario.disponibles(p, copia.id);
-      if (fila.cantidad > hay) {
-        UI.toast(hay ? 'De ' + p.codigo + ' solo quedan ' + hay + '.' : 'La piedra ' + p.codigo + ' ya no está disponible. Quítala del producto.');
+      var necesita = fila.cantidad * copia.cantidad;
+      if (necesita > hay) {
+        UI.toast(!hay ? 'La piedra ' + p.codigo + ' ya no está disponible. Quítala del producto.'
+          : (copia.cantidad > 1 ? 'Para ' + copia.cantidad + ' piezas hacen falta ' + necesita + ' de ' + p.codigo + ' y solo quedan ' + hay + '.' : 'De ' + p.codigo + ' solo quedan ' + hay + '.'));
         return false;
       }
     }
@@ -311,15 +339,10 @@
     return true;
   }
 
-  /* La venta registrada de este producto (las viejas no guardaban ventaId). */
-  function ventaDe(p) {
-    return Store.datos.ventas.find(function (v) { return v.id === p.ventaId; }) ||
-      Store.datos.ventas.find(function (v) { return v.tipo === 'producto' && v.itemId === p.id; }) || null;
-  }
-
   /* Selector Vendido / No vendido. Marcar "Vendido" lleva a registrar la
-     venta (comprador y pago quedan en el historial); volver a "No vendido"
-     deshace esa venta. Así el producto y el historial siempre coinciden. */
+     venta (comprador, piezas y pago quedan en el historial); volver a "No
+     vendido" deshace la venta más reciente. Así el producto y el historial
+     siempre coinciden. */
   function cambiarEstadoVenta(raiz, valor) {
     var selector = UI.$('#estadoVenta', raiz);
     var volver = function (v) { selector.value = v; UI.segmentar(raiz); };
@@ -332,12 +355,14 @@
       return;
     }
     if (valor === 'no' && borrador.vendido) {
-      var venta = ventaDe(borrador);
-      var aQuien = borrador.comprador ? ' a ' + borrador.comprador : '';
-      if (!confirm('¿Deshacer la venta de «' + borrador.nombre + '»' + aQuien + '? Se borra del historial de ventas y el producto vuelve a estar disponible.')) { volver('si'); return; }
+      var venta = Inventario.ventasDeProducto(borrador)[0];
+      var cuantas = venta && venta.cantidad > 1 ? venta.cantidad + ' piezas de ' : '';
+      var aQuien = venta && venta.comprador ? ' a ' + venta.comprador : '';
+      if (!confirm('¿Deshacer la venta de ' + cuantas + '«' + borrador.nombre + '»' + aQuien + '? Se borra del historial de ventas y esas piezas vuelven a estar disponibles.')) { volver('si'); return; }
       if (venta) {
         Vistas.venta.borrarVenta(venta.id);
       } else {
+        // Marcado como vendido sin venta registrada (datos viejos).
         var p = Inventario.buscarProducto(borrador.id);
         if (p) { p.vendido = false; delete p.comprador; delete p.ventaId; delete p.fechaVenta; Store.guardar(); }
       }
@@ -375,7 +400,7 @@
     cuerpo.innerHTML = borrador.piedras.map(function (p, i) {
       var enInventario = p.piedraId ? Inventario.buscarPiedra(p.piedraId) : null;
       if (enInventario) {
-        var maximo = Inventario.disponibles(enInventario, excluido());
+        var maximo = porPieza(Inventario.disponibles(enInventario, excluido()));
         return [
           '<tr>',
           '  <td><span class="etiqueta-calidad ' + p.calidad + '">' + escapar(p.codigo || enInventario.codigo) + '</span> ' + UI.nombreCalidad(p.calidad) + '</td>',
@@ -434,14 +459,17 @@
     });
   }
 
-  /* Solo las piedras con existencias, descontando las que ya van en este producto. */
+  /* Solo las piedras con existencias, descontando las que ya van en este
+     producto. Con varias piezas, una piedra más por pieza necesita una por
+     cada pieza. */
   function pintarSelectorPiedras(raiz) {
     var sel = UI.$('#traerPiedra', raiz);
+    var piezas = Math.max(1, borrador.cantidad);
     var usadasAqui = {};
-    borrador.piedras.forEach(function (f) { if (f.piedraId) usadasAqui[f.piedraId] = (usadasAqui[f.piedraId] || 0) + f.cantidad; });
+    borrador.piedras.forEach(function (f) { if (f.piedraId) usadasAqui[f.piedraId] = (usadasAqui[f.piedraId] || 0) + f.cantidad * piezas; });
     var opciones = Store.datos.piedras.map(function (p) {
       return { p: p, quedan: Inventario.disponibles(p, excluido()) - (usadasAqui[p.id] || 0) };
-    }).filter(function (x) { return x.quedan > 0; });
+    }).filter(function (x) { return x.quedan >= piezas; });
 
     sel.innerHTML = '<option value="">' + (opciones.length ? '+ Agregar piedra del inventario…' : 'No hay piedras disponibles') + '</option>';
     opciones.forEach(function (x) {
@@ -458,6 +486,7 @@
     borrador.nombre = (f.nombre || '').trim();
     borrador.tipoPieza = (f.tipoPieza || '').trim();
     borrador.fecha = f.fecha;
+    borrador.cantidad = Math.max(1, Math.round(Calc.num(f.cantidad) || 1));
 
     var valorMetal = UI.$('[data-campo="metal.valorManual"]', raiz);
     borrador.metal = {
@@ -535,19 +564,56 @@
       ? UI.numero(borrador.metal.gramos, 2) + ' g × ' + UI.cop(borrador.manoObra.valorPorGramo)
       : 'Valor estándar de Configuración.';
 
-    // Cantidades de piedras del inventario: nunca más de las que hay.
     if (borrador.vendido) return;
+    var inputPiezas = campo('cantidad');
+    var vendidas = Inventario.estadoProducto(borrador).vendidas;
+
+    // Piezas: no menos de las ya vendidas, ni más de las que alcanzan las piedras.
+    if (evento && evento.target === inputPiezas) {
+      var alcanzan = Infinity, limita = null;
+      borrador.piedras.forEach(function (f) {
+        if (!f.piedraId || !f.cantidad) return;
+        var p = Inventario.buscarPiedra(f.piedraId);
+        if (!p) return;
+        var n = Math.floor(Inventario.disponibles(p, excluido()) / f.cantidad);
+        if (n < alcanzan) { alcanzan = n; limita = p; }
+      });
+      if (borrador.cantidad > alcanzan) {
+        inputPiezas.value = Math.max(1, alcanzan);
+        UI.toast('Con las ' + limita.codigo + ' disponibles alcanza para ' + alcanzan + ' pieza' + (alcanzan === 1 ? '' : 's') + '.');
+      }
+    }
+    if (borrador.cantidad < vendidas) {
+      inputPiezas.value = vendidas;
+      UI.toast('Ya se vendieron ' + vendidas + ' piezas: no puede haber menos.');
+    }
+    borrador.cantidad = Math.max(1, Math.round(Calc.num(inputPiezas.value) || 1));
+
+    // Piedras por pieza: nunca más de las que hay para todas las piezas.
     borrador.piedras.forEach(function (f, i) {
       if (!f.piedraId) return;
       var p = Inventario.buscarPiedra(f.piedraId);
       if (!p) return;
-      var maximo = Inventario.disponibles(p, excluido());
+      var maximo = porPieza(Inventario.disponibles(p, excluido()));
       if (f.cantidad > maximo) {
         var input = UI.$('[data-piedra="' + i + '"][data-prop="cantidad"]', raiz);
         if (input) input.value = maximo;
-        UI.toast('De ' + p.codigo + ' solo hay ' + maximo + ' disponible' + (maximo === 1 ? '' : 's') + '.');
+        UI.toast(borrador.cantidad > 1
+          ? 'Para ' + borrador.cantidad + ' piezas, de ' + p.codigo + ' alcanzan ' + maximo + ' por pieza.'
+          : 'De ' + p.codigo + ' solo hay ' + maximo + ' disponible' + (maximo === 1 ? '' : 's') + '.');
       }
     });
+
+    // Al cambiar las piezas cambia cuántas piedras caben en cada una.
+    if (evento && evento.target === inputPiezas) { pintarPiedras(raiz); pintarSelectorPiedras(raiz); }
+
+    var pistaPiezas = UI.$('#pistaPiezas', raiz);
+    if (pistaPiezas) {
+      var porCadaUna = borrador.piedras.reduce(function (a, f) { return a + (f.cantidad || 0); }, 0);
+      pistaPiezas.textContent = borrador.cantidad > 1
+        ? 'Cada pieza lleva las piedras de la tabla: ' + (porCadaUna * borrador.cantidad) + ' en total.'
+        : 'Si haces varias iguales, escribe cuántas.';
+    }
   }
 
   function sincronizar(raiz, evento) {
@@ -571,12 +637,23 @@
 
     var precioManual = borrador.precioDeseado > 0;
     var inverso = precioManual ? Calc.margenDesdePrecio(r.costoTotal, borrador.precioDeseado) : null;
+    var piezas = Math.max(1, borrador.cantidad);
+    var porPiezaTexto = piezas > 1 ? ' · por pieza' : '';
 
     UI.$('#panelProducto', raiz).innerHTML = [
       precioManual ? '<h3>Precio de venta (fijado a mano)</h3>' : '<h3>Precio de venta sugerido</h3>',
       precioManual
-        ? '<div class="precio-grande">' + UI.cop(borrador.precioDeseado) + '<span>el margen te sugería ' + UI.cop(r.precioVenta) + '</span></div>'
-        : '<div class="precio-grande">' + UI.cop(r.precioVenta) + '<span>margen ' + UI.numero(borrador.margen) + ' % ' + (borrador.margenModo === 'sobrePrecio' ? 'sobre el precio' : 'sobre el costo') + '</span></div>',
+        ? '<div class="precio-grande">' + UI.cop(borrador.precioDeseado) + '<span>el margen te sugería ' + UI.cop(r.precioVenta) + porPiezaTexto + '</span></div>'
+        : '<div class="precio-grande">' + UI.cop(r.precioVenta) + '<span>margen ' + UI.numero(borrador.margen) + ' % ' + (borrador.margenModo === 'sobrePrecio' ? 'sobre el precio' : 'sobre el costo') + porPiezaTexto + '</span></div>',
+
+      piezas > 1 ? [
+        '<div class="bloque-equilibrio" style="margin-bottom:1rem">',
+        '  <h4>Las ' + piezas + ' piezas</h4>',
+        '  <p>Costo <strong>' + UI.cop(r.costoTotal * piezas) + '</strong> · Venta <strong>' + UI.cop(r.precioFinal * piezas) + '</strong>',
+        '  · Utilidad <strong class="' + UI.claseSigno(r.precioFinal - r.costoTotal) + '">' + UI.cop((r.precioFinal - r.costoTotal) * piezas) + '</strong>',
+        '  · ' + UI.numero(r.quilatesProducto * piezas, 2) + ' ct en total</p>',
+        '</div>'
+      ].join('') : '',
 
       '<div class="tabla-envoltura">',
       '<table class="tabla-resultado">',
@@ -632,14 +709,16 @@
     if (!productos.length) { cont.innerHTML = '<p class="vacio">Aún no has guardado productos.</p>'; return; }
     cont.innerHTML = productos.map(function (p) {
       var r = Calc.producto(p, Store.datos.config);
+      var e = Inventario.estadoProducto(p);
       var codigos = (p.piedras || []).map(function (f) {
         return (f.codigo || UI.nombreCalidad(f.calidad)) + (f.cantidad > 1 ? ' ×' + f.cantidad : '');
       });
       return [
         '<div class="item-lista">',
-        '  <div class="cuerpo-item"><strong>' + escapar(p.nombre) + '</strong>' +
-          (p.vendido ? '<span class="insignia-vendido">Vendido' + (p.comprador ? ' a ' + escapar(p.comprador) : '') + '</span>' : '<span class="insignia-nivel">Disponible</span>'),
-        '  <span class="pista">' + UI.fecha(p.fecha) + ' · costo ' + UI.cop(r.costoTotal) + ' · precio ' + UI.cop(r.precioFinal) + (codigos.length ? ' · ' + escapar(codigos.join(', ')) : '') + '</span></div>',
+        '  <div class="cuerpo-item"><strong>' + escapar(p.nombre) + '</strong>' + (e.total > 1 ? ' × ' + e.total : '') +
+          '<span class="' + e.clase + '">' + escapar(e.etiqueta) + '</span>',
+        '  <span class="pista">' + UI.fecha(p.fecha) + ' · costo ' + UI.cop(r.costoTotal) + ' · precio ' + UI.cop(r.precioFinal) + (e.total > 1 ? ' c/u' : '') +
+          (codigos.length ? ' · ' + escapar(codigos.join(', ')) + (e.total > 1 ? ' por pieza' : '') : '') + '</span></div>',
         '  <div class="fila-botones">',
         '    <button class="boton pequeno" data-cargar="' + p.id + '">Abrir</button>',
         '    <button class="boton pequeno peligro" data-borrar="' + p.id + '">Borrar</button>',
@@ -659,13 +738,16 @@
       b.addEventListener('click', function () {
         var id = b.getAttribute('data-borrar');
         var p = Inventario.buscarProducto(id);
-        if (p && p.vendido && !confirm('«' + p.nombre + '» tiene una venta registrada. La venta se conserva en el historial. ¿Borrar el producto?')) return;
+        var ventas = p ? Inventario.ventasDeProducto(p).length : 0;
+        if (ventas && !confirm('«' + p.nombre + '» tiene ' + (ventas === 1 ? 'una venta registrada' : ventas + ' ventas registradas') + '. Se conservan en el historial. ¿Borrar el producto?')) return;
         Store.datos.productos = Store.datos.productos.filter(function (x) { return x.id !== id; });
         Store.guardar();
         if (borrador && borrador.id === id) borrador.id = null;
         pintarSelectorPiedras(raiz);
         pintarLista(raiz);
-        if (p && !p.vendido && (p.piedras || []).some(function (f) { return f.piedraId; })) UI.toast('Producto borrado. Sus piedras volvieron al inventario.');
+        if (p && !p.vendido && (p.piedras || []).some(function (f) { return f.piedraId; })) {
+          UI.toast(ventas ? 'Producto borrado. Las piedras de las piezas sin vender volvieron al inventario.' : 'Producto borrado. Sus piedras volvieron al inventario.');
+        }
       });
     });
   }

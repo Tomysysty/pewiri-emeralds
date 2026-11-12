@@ -20,8 +20,8 @@
   function borrarVenta(id) {
     var v = Store.datos.ventas.find(function (x) { return x.id === id; });
     if (!v) return false;
-    deshacerVenta(v);
     Store.datos.ventas = Store.datos.ventas.filter(function (x) { return x.id !== id; });
+    deshacerVenta(v);
     Store.guardar();
     return true;
   }
@@ -48,7 +48,14 @@
   function disponiblesDe(tipo) {
     if (tipo === 'piedra') return Store.datos.piedras.filter(function (p) { return Inventario.disponibles(p) > 0; });
     if (tipo === 'lote') return Store.datos.lotes.filter(function (l) { return !l.vendido && !l.enInventario; });
-    return Store.datos.productos.filter(function (p) { return !p.vendido; });
+    return Store.datos.productos.filter(function (p) { return Inventario.estadoProducto(p).disponibles > 0; });
+  }
+
+  /* Cuántas unidades quedan de lo elegido (piedras o piezas de un producto). */
+  function quedan(tipo, item) {
+    if (tipo === 'piedra') return Inventario.disponibles(item);
+    if (tipo === 'producto') return Inventario.estadoProducto(item).disponibles;
+    return 1;
   }
 
   function buscarItem(tipo, id) {
@@ -69,7 +76,7 @@
     var cfg = Store.datos.config;
     if (tipo === 'piedra') return Calc.piedra(item, cfg.precioQuilate).valorUnitario * (cantidad || 1);
     if (tipo === 'lote') return Calc.lote(item, cfg.precioQuilate).ventaTotal;
-    return Calc.producto(item, cfg).precioFinal;
+    return Calc.producto(item, cfg).precioFinal * (cantidad || 1);
   }
 
   /* Foto de lo vendido: si después se edita o borra el producto o la piedra,
@@ -77,13 +84,15 @@
   function detalleDe(tipo, item, cantidad) {
     var cfg = Store.datos.config;
     if (tipo === 'producto') {
+      // Las piedras del producto son por pieza: se vendieron × las piezas vendidas.
       var r = Calc.producto(item, cfg);
+      var n = cantidad || 1;
       return {
         piedras: (item.piedras || []).map(function (f) {
-          return { piedraId: f.piedraId || null, codigo: f.codigo || '', calidad: f.calidad, quilates: Calc.num(f.quilates), cantidad: Calc.num(f.cantidad) || 1 };
+          return { piedraId: f.piedraId || null, codigo: f.codigo || '', calidad: f.calidad, quilates: Calc.num(f.quilates), cantidad: (Calc.num(f.cantidad) || 1) * n };
         }),
-        metal: r.metal.gramos > 0 || r.metal.costo > 0 ? r.metal.nombre + ' · ' + UI.numero(r.metal.gramos, 2) + ' g' : '',
-        costo: Math.round(r.costoTotal)
+        metal: r.metal.gramos > 0 || r.metal.costo > 0 ? r.metal.nombre + ' · ' + UI.numero(r.metal.gramos * n, 2) + ' g' + (n > 1 ? ' (' + n + ' piezas)' : '') : '',
+        costo: Math.round(r.costoTotal * n)
       };
     }
     if (tipo === 'piedra') {
@@ -213,7 +222,8 @@
     items.forEach(function (item) {
       var o = document.createElement('option');
       o.value = item.id;
-      o.textContent = nombreItem(borrador.tipo, item) + (borrador.tipo === 'piedra' ? ' · ' + Inventario.disponibles(item) + ' disp.' : '');
+      var conCantidad = borrador.tipo === 'piedra' || (borrador.tipo === 'producto' && Inventario.piezas(item) > 1);
+      o.textContent = nombreItem(borrador.tipo, item) + (conCantidad ? ' · ' + quedan(borrador.tipo, item) + ' disp.' : '');
       if (item.id === borrador.itemId) o.selected = true;
       sel.appendChild(o);
     });
@@ -264,16 +274,24 @@
     leerBorrador(raiz);
     var item = borrador.itemId ? buscarItem(borrador.tipo, borrador.itemId) : null;
 
+    // Cuántas: piedras sueltas, o piezas de un producto que tiene varias iguales.
     var campoCantidad = UI.$('#campoCantidad', raiz);
     var inputCantidad = UI.$('[data-campo="cantidad"]', raiz);
     var esPiedra = borrador.tipo === 'piedra';
-    campoCantidad.style.display = esPiedra ? '' : 'none';
-    if (esPiedra && item) {
-      var hay = Inventario.disponibles(item);
+    var conCantidad = esPiedra || (borrador.tipo === 'producto' && item && Inventario.piezas(item) > 1);
+    campoCantidad.style.display = conCantidad ? '' : 'none';
+    campoCantidad.querySelector('label').textContent = esPiedra ? 'Cuántas piedras' : 'Cuántas piezas';
+    if (conCantidad && item) {
+      var hay = quedan(borrador.tipo, item);
       inputCantidad.max = hay;
-      if (borrador.cantidad > hay) { inputCantidad.value = hay; borrador.cantidad = hay; UI.toast('De ' + item.codigo + ' solo hay ' + hay + '.'); }
+      if (borrador.cantidad > hay) {
+        inputCantidad.value = hay; borrador.cantidad = hay;
+        UI.toast((esPiedra ? 'De ' + item.codigo : 'De «' + item.nombre + '»') + ' solo hay ' + hay + '.');
+      }
       if (borrador.cantidad < 1) { inputCantidad.value = 1; borrador.cantidad = 1; }
       UI.$('#pistaCantidad', raiz).textContent = 'Hay ' + hay + ' disponible' + (hay === 1 ? '' : 's') + '.';
+    } else if (!conCantidad) {
+      inputCantidad.value = 1; borrador.cantidad = 1;
     }
 
     UI.auto(UI.$('[data-campo="precio"]', raiz), Math.round(precioSugerido(borrador.tipo, item, borrador.cantidad)));
@@ -336,7 +354,11 @@
     var item = buscarItem(borrador.tipo, borrador.itemId);
     if (!item) { UI.toast('No se encontró el artículo.'); return; }
     var esPiedra = borrador.tipo === 'piedra';
-    if (esPiedra && (borrador.cantidad < 1 || borrador.cantidad > Inventario.disponibles(item))) { UI.toast('Revisa cuántas piedras se venden.'); return; }
+    var porUnidades = esPiedra || borrador.tipo === 'producto';
+    if (porUnidades && (borrador.cantidad < 1 || borrador.cantidad > quedan(borrador.tipo, item))) {
+      UI.toast(esPiedra ? 'Revisa cuántas piedras se venden.' : 'Revisa cuántas piezas se venden.');
+      return;
+    }
 
     var venta = {
       id: Store.id(),
@@ -357,16 +379,19 @@
       fechaPagoEsperada: borrador.estadoPago === 'total' ? '' : borrador.fechaPagoEsperada,
       detalle: detalleDe(borrador.tipo, item, borrador.cantidad)
     };
-    if (esPiedra) venta.cantidad = borrador.cantidad;
+    if (porUnidades) venta.cantidad = borrador.cantidad;
 
-    // Las piedras se descuentan solas (Inventario); productos y lotes quedan marcados.
-    if (!esPiedra) {
+    // Las piedras se descuentan solas (Inventario). Un producto queda vendido
+    // cuando ya no le quedan piezas; un lote se vende entero.
+    Store.datos.ventas.unshift(venta);
+    if (borrador.tipo === 'producto') {
+      Inventario.sincronizarProducto(item);
+    } else if (borrador.tipo === 'lote') {
       item.vendido = true;
       item.comprador = venta.comprador;
       item.ventaId = venta.id;
       item.fechaVenta = venta.fecha;
     }
-    Store.datos.ventas.unshift(venta);
     Store.guardar();
 
     borrador = nuevoBorrador();
@@ -374,20 +399,25 @@
     UI.toast('Venta registrada: ' + venta.itemNombre + ' a ' + venta.comprador + '.');
   }
 
-  /* Si se borra la venta, el artículo vuelve a estar disponible. */
+  /* Ya borrada la venta de la lista: el artículo vuelve a estar disponible
+     (las piedras vuelven solas; un producto recupera esas piezas). */
   function deshacerVenta(v) {
     if (v.tipo === 'piedra') return;
     var item = buscarItem(v.tipo, v.itemId);
-    if (!item || (item.ventaId && item.ventaId !== v.id)) return;
+    if (!item) return;
+    if (v.tipo === 'producto') { Inventario.sincronizarProducto(item); return; }
+    if (item.ventaId && item.ventaId !== v.id) return;
     item.vendido = false;
     delete item.comprador; delete item.ventaId; delete item.fechaVenta;
   }
 
-  /* Ventas anteriores a la foto de detalle: se reconstruye con lo que hay hoy. */
+  /* Ventas anteriores a la foto de detalle: se reconstruye con lo que hay hoy.
+     Una venta vieja de piedra sin cantidad era la piedra entera; de producto, una pieza. */
   function detalleDeVenta(v) {
     if (v.detalle) return v.detalle;
     var item = buscarItem(v.tipo, v.itemId);
-    return item ? detalleDe(v.tipo, item, v.cantidad || Calc.num(item.cantidad) || 1) : null;
+    if (!item) return null;
+    return detalleDe(v.tipo, item, v.cantidad || (v.tipo === 'piedra' ? Calc.num(item.cantidad) : 1) || 1);
   }
 
   /* ---------- Resumen de ventas ---------- */
@@ -447,7 +477,12 @@
     var cont = UI.$('#resumenVentas', raiz);
     var ventas = Store.datos.ventas;
     var productos = Store.datos.productos;
-    var vendidos = productos.filter(function (p) { return p.vendido; }).length;
+    // Se cuentan piezas: un producto de 3 aretes iguales son 3.
+    var piezas = productos.reduce(function (a, p) {
+      var e = Inventario.estadoProducto(p);
+      a.total += e.total; a.vendidas += Math.min(e.vendidas, e.total);
+      return a;
+    }, { total: 0, vendidas: 0 });
 
     var r = Calc.reporteVentas(ventas.map(function (v) {
       var d = detalleDeVenta(v);
@@ -475,7 +510,7 @@
       '<div class="indicadores">',
       indicador('Ventas registradas', UI.numero(r.cantidad), delMes ? delMes.cantidad + ' este mes' : (r.cantidad ? 'ninguna este mes' : '')),
       indicador('Total vendido', UI.cop(r.vendido), r.cantidad ? 'cobrado ' + UI.cop(r.cobrado) : ''),
-      indicador('Productos vendidos', vendidos + ' de ' + productos.length, productos.length ? UI.pct(vendidos / productos.length, 0) + ' del total' : 'sin productos'),
+      indicador('Productos vendidos', piezas.vendidas + ' de ' + piezas.total, piezas.total ? UI.pct(piezas.vendidas / piezas.total, 0) + ' de las piezas' : 'sin productos'),
       indicador('Pendiente por cobrar', UI.cop(r.pendiente), r.ventasPendientes ? 'en ' + r.ventasPendientes + ' venta' + (r.ventasPendientes === 1 ? '' : 's') : 'nada pendiente', r.pendiente > 0 ? 'negativo' : ''),
       indicador('Utilidad', UI.cop(r.utilidad), r.vendidoConCosto ? 'margen ' + UI.pct(r.margen, 0) : '', UI.claseSigno(r.utilidad)),
       '</div>',

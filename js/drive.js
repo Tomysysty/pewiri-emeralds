@@ -113,15 +113,18 @@
     var cfg = Store.datos.config;
     return Store.datos.productos.map(function (p) {
       var r = Calc.producto(p, cfg);
+      var e = Inventario.estadoProducto(p);
       return {
         'ID': p.id, 'Nombre': texto(p.nombre), 'Tipo de pieza': texto(p.tipoPieza), 'Fecha': texto(p.fecha),
-        'Piedras': (p.piedras || []).map(function (f) {
+        'Piezas': e.total, 'Vendidas': e.vendidas, 'Disponibles': e.disponibles,
+        'Piedras por pieza': (p.piedras || []).map(function (f) {
           return (f.codigo || UI.nombreCalidad(f.calidad)) + ' ' + UI.numero(f.quilates, 2) + ' ct' + (f.cantidad > 1 ? ' ×' + f.cantidad : '');
         }).join(', '),
-        'Quilates': redondo(r.quilatesProducto, 2), 'Metal': r.metal.nombre, 'Gramos': redondo(r.metal.gramos, 2),
+        'Quilates por pieza': redondo(r.quilatesProducto, 2), 'Metal': r.metal.nombre, 'Gramos por pieza': redondo(r.metal.gramos, 2),
         'Otros costos': r.otrosCostos.map(function (c) { return c.nombre + ' ' + UI.cop(c.valor); }).join(' · '),
-        'Costo total': redondo(r.costoTotal), 'Precio de venta': redondo(r.precioFinal),
-        'Estado': p.vendido ? 'Vendido' : 'Disponible', 'Comprador': texto(p.comprador), 'Fecha de venta': texto(p.fechaVenta)
+        'Costo por pieza': redondo(r.costoTotal), 'Precio por pieza': redondo(r.precioFinal),
+        'Estado': e.agotado ? 'Vendido' : (e.vendidas ? 'Vendido en parte' : 'Disponible'),
+        'Compradores': e.compradores.join(', '), 'Última venta': texto(p.fechaVenta)
       };
     });
   }

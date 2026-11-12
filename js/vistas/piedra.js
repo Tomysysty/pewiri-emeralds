@@ -148,6 +148,7 @@
         (x.producto.vendido ? ' <span class="insignia-vendido">Vendido' + (x.producto.comprador ? ' a ' + escapar(x.producto.comprador) : '') + '</span>' : ' <span class="pista-inline">sin vender</span>') + '</li>';
     });
     if (e.vendidas) destinos.push('<li>' + e.vendidas + ' vendida' + (e.vendidas > 1 ? 's' : '') + ' suelta' + (e.vendidas > 1 ? 's' : '') + '</li>');
+    if (e.enJoyasBorradas) destinos.push('<li>' + e.enJoyasBorradas + ' en joyas vendidas (el producto se borró)</li>');
 
     return [
       '<div class="item-lista">',

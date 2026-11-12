@@ -16,18 +16,59 @@
     return null;
   }
 
-  /* Productos que llevan esta piedra y cuántas de ella. */
+  /* Cuántas piezas iguales tiene un producto (los viejos no lo decían: una). */
+  function piezas(p) { return Math.max(1, Math.round(num(p.cantidad) || 1)); }
+
+  /* Productos que llevan esta piedra y cuántas de ella. La tabla de piedras
+     de un producto es por pieza: 3 aretes con 2 esmeraldas cada uno son 6. */
   function enProductos(piedraId, excluirProductoId) {
     var out = [];
     Store.datos.productos.forEach(function (p) {
       if (p.id === excluirProductoId) return;
       var n = 0;
       (p.piedras || []).forEach(function (f) {
-        if (f.piedraId === piedraId) n += num(f.cantidad) || 1;
+        if (f.piedraId === piedraId) n += (num(f.cantidad) || 1) * piezas(p);
       });
       if (n) out.push({ producto: p, cantidad: n });
     });
     return out;
+  }
+
+  /* Ventas de un producto, la más reciente primero. */
+  function ventasDeProducto(p) {
+    return Store.datos.ventas.filter(function (v) { return v.tipo === 'producto' && v.itemId === p.id; });
+  }
+
+  /* Piezas de un producto: cuántas hay, cuántas se vendieron y cuántas quedan.
+     Las ventas anteriores a las piezas no traían cantidad: eran una pieza. */
+  function estadoProducto(p) {
+    var total = piezas(p);
+    var ventas = ventasDeProducto(p);
+    var vendidas = ventas.reduce(function (a, v) { return a + (num(v.cantidad) || 1); }, 0);
+    var disponibles = Math.max(0, total - vendidas);
+    var compradores = [];
+    ventas.forEach(function (v) { if (v.comprador && compradores.indexOf(v.comprador) < 0) compradores.push(v.comprador); });
+
+    var etiqueta;
+    if (!vendidas) etiqueta = total > 1 ? total + ' disponibles' : 'Disponible';
+    else if (disponibles) etiqueta = disponibles + ' de ' + total + ' disponibles';
+    else etiqueta = 'Vendido' + (compradores.length === 1 ? ' a ' + compradores[0] : (compradores.length > 1 ? ' a ' + compradores.length + ' compradores' : ''));
+
+    return {
+      total: total, vendidas: vendidas, disponibles: disponibles, ventas: ventas,
+      compradores: compradores, agotado: vendidas > 0 && disponibles === 0,
+      etiqueta: etiqueta, clase: disponibles > 0 ? 'insignia-nivel' : 'insignia-vendido'
+    };
+  }
+
+  /* Tras vender o deshacer una venta: el producto queda "vendido" solo si
+     ya no le quedan piezas, y recuerda la venta más reciente. */
+  function sincronizarProducto(p) {
+    var e = estadoProducto(p);
+    p.vendido = e.agotado;
+    var ultima = e.ventas[0];
+    if (ultima) { p.comprador = ultima.comprador; p.ventaId = ultima.id; p.fechaVenta = ultima.fecha; }
+    else { delete p.comprador; delete p.ventaId; delete p.fechaVenta; }
   }
 
   /* Las ventas anteriores a este cambio no traían cantidad: se vendió todo. */
@@ -38,12 +79,25 @@
     }, 0);
   }
 
+  /* Piedras que salieron en joyas vendidas cuyo producto después se borró:
+     el producto ya no las cuenta, pero la venta guardó cuáles llevaba. */
+  function enJoyasBorradas(piedra) {
+    return Store.datos.ventas.reduce(function (acc, v) {
+      if (v.tipo !== 'producto' || buscar(Store.datos.productos, v.itemId)) return acc;
+      ((v.detalle && v.detalle.piedras) || []).forEach(function (f) {
+        if (f.piedraId === piedra.id) acc += num(f.cantidad) || 1;
+      });
+      return acc;
+    }, 0);
+  }
+
   function estadoPiedra(piedra, excluirProductoId) {
     var total = num(piedra.cantidad) || 1;
     var productos = enProductos(piedra.id, excluirProductoId);
     var montadas = productos.reduce(function (a, x) { return a + x.cantidad; }, 0);
     var vendidas = vendidasSueltas(piedra);
-    var disponibles = Math.max(0, total - montadas - vendidas);
+    var joyasBorradas = enJoyasBorradas(piedra);
+    var disponibles = Math.max(0, total - montadas - vendidas - joyasBorradas);
     var enProductoSinVender = productos.some(function (x) { return !x.producto.vendido; });
 
     var etiqueta;
@@ -56,6 +110,7 @@
       total: total,
       montadas: montadas,
       vendidas: vendidas,
+      enJoyasBorradas: joyasBorradas,
       disponibles: disponibles,
       productos: productos,
       agotada: disponibles === 0,
@@ -129,6 +184,10 @@
     buscarLote: function (id) { return buscar(Store.datos.lotes, id); },
     enProductos: enProductos,
     estadoPiedra: estadoPiedra,
+    piezas: piezas,
+    ventasDeProducto: ventasDeProducto,
+    estadoProducto: estadoProducto,
+    sincronizarProducto: sincronizarProducto,
     disponibles: disponibles,
     estadoLote: estadoLote,
     siguienteCodigo: siguienteCodigo,

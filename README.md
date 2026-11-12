@@ -28,7 +28,7 @@ queda una copia en línea.
 | **Caracterización** | La huella digital SVP-9: nueve factores calificados de 1 a 10 que se dibujan solos en el radar. Da el puntaje y el nivel, guarda varias fotos por piedra, compara dos piedras y exporta la huella en PNG y la base en CSV. |
 | **Lote** | Costo del lote y su reparto por calidad. Al escribir el % de una calidad, los que no has tocado se ajustan para sumar 100 % y el número de piedras sale solo. Da el valor de venta y el punto de equilibrio. Un lote se vende entero o se **pasa al inventario** como piedras sueltas. |
 | **Piedra** | Una piedra o un grupo de piedras iguales: calidad, quilates y precio. Puede traer los datos de una evaluación SVP-9. Es también el **inventario**: arriba las disponibles; en un desplegable, las montadas en joyas o vendidas. |
-| **Producto** | La joya: piedras del inventario + metal + mano de obra + otros costos + margen → precio de venta. Tiene el selector **Vendido / No vendido**. |
+| **Producto** | La joya: piedras del inventario + metal + mano de obra + otros costos + margen → precio de venta. Puede tener **varias piezas iguales**: la tabla de piedras es por pieza y el inventario descuenta piedras × piezas. Tiene el selector **Vendido / No vendido**. |
 | **Venta** | Registra la venta de un producto, piedras o un lote: comprador, fecha, precio y pago (total, anticipo o sin pagar; efectivo o transferencia). Arriba, el **resumen**: total vendido, pendiente por cobrar y quién debe, ganancia, ventas y ganancia de cada mes en gráfica, y lo que de verdad te pagan por quilate. |
 | **Mercado** | Cómo cambian los precios: el último año del oro y la plata y los cambios de la tabla de esmeraldas, en pesos o en % de cambio. |
 | **Configuración** | Las constantes (precio del quilate por calidad, metales, mano de obra, envío, empaque, margen, pesos del SVP-9), la conexión con Google Drive y el respaldo de datos. |
@@ -41,8 +41,9 @@ queda una copia en línea.
   marcan a mano: se calculan de los productos y las ventas, así nunca quedan
   desincronizadas.
 - **Producto → Vendido.** Marcar "Vendido" abre Venta con ese producto elegido, para
-  que el comprador y el pago queden en el historial. Volver a "No vendido" deshace
-  la venta.
+  que el comprador y el pago queden en el historial. Si tiene varias piezas, se
+  venden una o varias a la vez; queda "Vendido" cuando ya no quedan. Volver a
+  "No vendido" deshace la venta más reciente.
 - **Cada venta guarda una foto de lo que se vendió** (piedras, metal y costo): si
   después se edita o se borra el producto, el historial no cambia.
 
