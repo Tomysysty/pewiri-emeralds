@@ -556,7 +556,9 @@ tfoot th { border-top: 1px solid var(--linea-fuerte); font-size: .89rem; color: 
 .foto-mini{width:40px;height:40px;flex:none;object-fit:cover;border:1px solid var(--linea);background:#fff}
 
 /* ---------- SVP-9: caracterización ---------- */
-.factores { display: grid; gap: .1rem; }
+/* minmax(0, …): la columna no crece con el contenido; en el celular los
+   factores se ajustan al ancho en vez de empujar la página hacia un lado. */
+.factores { display: grid; grid-template-columns: minmax(0, 1fr); gap: .1rem; }
 .factor { padding: .8rem 0; border-bottom: 1px solid var(--linea); }
 .factor:last-child { border-bottom: none; }
 .factor-cabeza { display: flex; align-items: center; gap: .7rem; }
@@ -574,6 +576,14 @@ tfoot th { border-top: 1px solid var(--linea-fuerte); font-size: .89rem; color: 
   color: var(--verde-claro); letter-spacing: .06em; flex: none;
 }
 .factor-numero { width: 62px; flex: none; }
+/* En el celular, nombres como "Procedencia" con nivel "Excepcional" no caben
+   en una línea: el nivel baja debajo del nombre y el nombre queda entero. */
+@media (max-width: 480px) {
+  .factor-cabeza { flex-wrap: wrap; gap: .25rem .5rem; }
+  .factor-nombre { min-width: 0; font-size: .95rem; letter-spacing: .06em; }
+  .factor-nivel { order: 5; flex-basis: 100%; padding-left: calc(34px + 12px + 1rem); }
+  .factor-numero { width: 56px; }
+}
 .campo-doble { grid-column: span 2; }
 @media (max-width: 720px) { .campo-doble { grid-column: span 1; } }
 .factor-descripcion {
