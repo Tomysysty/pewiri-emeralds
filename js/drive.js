@@ -41,6 +41,8 @@
     try {
       var e = JSON.parse(localStorage.getItem(CLAVE_LOCAL) || '{}');
       e.huellas = e.huellas || {};
+      // Conexiones hechas antes de esta revisión: si ya enviaron, ya estaban verificadas.
+      if (e.url && e.ultimoEnvio && !e.verificado) e.verificado = e.url;
       return e;
     } catch (err) {
       return { huellas: {} };
@@ -54,6 +56,17 @@
   function url() { return String(estado.url || DRIVE_WEBAPP_URL || '').trim(); }
   function clave() { return String(estado.clave || DRIVE_CLAVE || '').trim(); }
   function configurado() { return /^https:\/\/\S+$/.test(url()) || /^http:\/\/(localhost|127\.0\.0\.1)(:\d+)?\//.test(url()); }
+
+  /* No se envía nada hasta revisar la hoja al conectar: si este navegador
+     está vacío y Drive ya tiene datos, primero se ofrece traerlos. Si no,
+     lo vacío de aquí (por ejemplo la configuración de fábrica) pisaría lo
+     que hay allá. */
+  function listo() { return configurado() && estado.verificado === url(); }
+
+  function datosLocalesVacios() {
+    var d = Store.datos;
+    return !['evaluaciones', 'lotes', 'piedras', 'productos', 'ventas'].some(function (k) { return (d[k] || []).length; });
+  }
 
   /* ---------- De los datos de la app a filas de la hoja ---------- */
 
@@ -150,13 +163,53 @@
     });
   }
 
+  function nombreConcepto(item) {
+    if (String(item).indexOf('esmeralda-') === 0) return 'Esmeralda ' + UI.nombreCalidad(item.replace('esmeralda-', '')) + ' (por quilate)';
+    var m = Store.datos.config.metales[item];
+    return (m ? m.nombre : item) + ' (por gramo)';
+  }
+
+  function filasHistorial() {
+    return (Store.datos.historial || []).filter(function (h) { return h.id; }).map(function (h) {
+      return {
+        'ID': h.id, 'Fecha': texto(h.fecha), 'Concepto': nombreConcepto(h.item), 'Valor': redondo(h.valor),
+        'Fuente': h.fuente === 'mercado' ? 'Mercado' : 'A mano', 'Datos': ficha(h)
+      };
+    });
+  }
+
+  /* La configuración entera en una sola fila: precios por calidad, metales,
+     márgenes y pesos del SVP-9. Sirve para restaurarla tal cual. */
+  function filasAjustes() {
+    return [{
+      'ID': 'configuracion', 'Qué es': 'Configuración de la app: precios por calidad, metales, márgenes y SVP-9',
+      'Datos': JSON.stringify(Store.datos.config)
+    }];
+  }
+
+  /* La ficha completa de un registro, para poder restaurarlo desde la hoja.
+     Las fotos no van: no caben en una celda (máximo 50.000 caracteres). */
+  function ficha(registro) {
+    var copia = {};
+    Object.keys(registro).forEach(function (k) { if (k !== 'imagenes') copia[k] = registro[k]; });
+    var json = JSON.stringify(copia);
+    return json.length < 49000 ? json : '';
+  }
+
+  function conFicha(filas, registros) {
+    return filas.map(function (f, i) { f['Datos'] = ficha(registros[i]); return f; });
+  }
+
   function todasLasFilas() {
+    var d = Store.datos;
     return {
-      Evaluaciones: filasEvaluaciones(),
-      Lotes: filasLotes(),
-      Piedras: filasPiedras(),
-      Productos: filasProductos(),
-      Ventas: filasVentas()
+      Evaluaciones: conFicha(filasEvaluaciones(), d.evaluaciones || []),
+      Lotes: conFicha(filasLotes(), d.lotes),
+      Piedras: conFicha(filasPiedras(), d.piedras),
+      Productos: conFicha(filasProductos(), d.productos),
+      Ventas: conFicha(filasVentas(), d.ventas),
+      Historial: filasHistorial(),
+      Ajustes: filasAjustes()
     };
   }
 
@@ -230,6 +283,7 @@
   /* Envía lo pendiente. todo = true reenvía todas las filas. */
   function enviar(todo) {
     if (!configurado()) return Promise.resolve({ ok: false, sinConfigurar: true });
+    if (!listo()) return Promise.resolve({ ok: false, error: 'falta tocar "Guardar y probar conexión"' });
     if (enCurso) return enCurso.then(function () { return enviar(todo); });
 
     var c = cambios(todo);
@@ -245,6 +299,9 @@
           var enviadas = c.hojas[nombre];
           var antes = estado.huellas[nombre] || {};
           if (!enviadas) return;
+          // Un Apps Script viejo ignora las pestañas que no conoce: esas no
+          // cuentan como enviadas y vuelven a ir cuando se actualice.
+          if (respuesta.resumen && !(nombre in respuesta.resumen)) return;
           enviadas.filas.forEach(function (f) { antes[f.ID] = c.huellas[nombre][f.ID]; });
           enviadas.borrados.forEach(function (id) { delete antes[id]; });
           estado.huellas[nombre] = antes;
@@ -279,7 +336,7 @@
   /* Cada guardado de la app programa un envío; varios guardados seguidos
      se juntan en uno solo. */
   function programar() {
-    if (!configurado()) return;
+    if (!listo()) return;
     pintarEstado();
     clearTimeout(temporizador);
     temporizador = setTimeout(function () { enviar(); }, ESPERA);
@@ -298,11 +355,83 @@
     });
   }
 
+  function marcarVerificado() {
+    estado.verificado = url();
+    guardarEstado();
+    pintarEstado();
+  }
+
+  /* Probar la conexión y revisar la hoja antes de enviar nada. Si este
+     navegador está vacío y Drive tiene registros, devuelve ofrecerRestaurar
+     y deja la decisión a la vista; si no, queda lista para enviar. */
+  function conectar() {
+    return probar().then(function (r) {
+      if (!r.ok) return r;
+      if (Calc.num(r.registros) > 0 && datosLocalesVacios()) { r.ofrecerRestaurar = true; return r; }
+      marcarVerificado();
+      return r;
+    });
+  }
+
+  /* Trae de la hoja las fichas completas (columna Datos) y reemplaza lo de
+     este navegador. Las fotos no están en Drive: si este navegador las
+     tiene, se conservan. */
+  function restaurar() {
+    if (!configurado()) return Promise.resolve({ ok: false, error: 'Pega primero el enlace y la clave.' });
+    return llamar({ clave: clave(), accion: 'leer' }).then(function (r) {
+      if (!r.hojas) throw new Error('el Apps Script está desactualizado: pega el código nuevo de drive/apps-script.gs y publica una nueva versión');
+      var leer = function (nombre) {
+        return (r.hojas[nombre] || []).map(function (s) {
+          try { return JSON.parse(s); } catch (e) { return null; }
+        }).filter(function (x) { return x && x.id; });
+      };
+      // Los ID llevan la hora en que se crearon: el más nuevo primero, como en la app.
+      var masNuevoPrimero = function (a, b) { return a.id < b.id ? 1 : (a.id > b.id ? -1 : 0); };
+      var actuales = Store.datos;
+      var fotos = {};
+      (actuales.evaluaciones || []).forEach(function (e) { if (e.imagenes && e.imagenes.length) fotos[e.id] = e.imagenes; });
+
+      var config = null;
+      (r.hojas.Ajustes || []).forEach(function (s) { try { config = JSON.parse(s); } catch (e) { /* fila dañada: se queda la de aquí */ } });
+
+      var nuevo = {
+        version: actuales.version,
+        empresa: actuales.empresa,
+        config: config || actuales.config,
+        evaluaciones: leer('Evaluaciones').map(function (e) { e.imagenes = fotos[e.id] || []; return e; }).sort(masNuevoPrimero),
+        lotes: leer('Lotes').sort(masNuevoPrimero),
+        piedras: leer('Piedras').sort(masNuevoPrimero),
+        productos: leer('Productos').sort(masNuevoPrimero),
+        ventas: leer('Ventas').sort(masNuevoPrimero),
+        historial: leer('Historial').sort(function (a, b) { return a.fecha < b.fecha ? -1 : (a.fecha > b.fecha ? 1 : 0); }),
+        cotizacion: actuales.cotizacion,
+        serieMetales: actuales.serieMetales
+      };
+      if (!nuevo.historial.length) nuevo.historial = actuales.historial;
+      var total = nuevo.evaluaciones.length + nuevo.lotes.length + nuevo.piedras.length + nuevo.productos.length + nuevo.ventas.length;
+
+      Store.importar(JSON.stringify(nuevo));
+      // Lo de aquí ya es igual a lo de Drive: no hay nada que reenviar.
+      estado.huellas = cambios(true).huellas;
+      estado.verificado = url();
+      estado.error = '';
+      estado.ultimoEnvio = new Date().toISOString();
+      guardarEstado();
+      pintarEstado();
+      return {
+        ok: true, total: total, configuracion: !!config,
+        fotosConservadas: nuevo.evaluaciones.filter(function (e) { return e.imagenes.length; }).length
+      };
+    }).catch(function (e) {
+      return { ok: false, error: motivo(e) };
+    });
+  }
+
   /* Cambiar de hoja (p. ej. de la cuenta de prueba a la de Pewiri) obliga a
      enviar todo de nuevo: la hoja nueva no tiene nada. */
   function configurar(nuevaUrl, nuevaClave) {
     nuevaUrl = String(nuevaUrl || '').trim();
-    if (nuevaUrl !== String(estado.url || '')) { estado.huellas = {}; delete estado.hoja; delete estado.ultimoEnvio; }
+    if (nuevaUrl !== String(estado.url || '')) { estado.huellas = {}; delete estado.hoja; delete estado.ultimoEnvio; delete estado.verificado; }
     estado.url = nuevaUrl;
     estado.clave = String(nuevaClave || '').trim();
     estado.error = '';
@@ -326,6 +455,7 @@
   /* Resumen corto: 'al día', 'pendiente', 'error'… */
   function situacion() {
     if (!configurado()) return { clase: 'apagado', texto: 'Drive sin conectar' };
+    if (!listo()) return { clase: 'error', texto: 'Drive en pausa · toca "Guardar y probar conexión"' };
     if (estado.enviando) return { clase: 'enviando', texto: 'Guardando en Drive…' };
     if (estado.error) return { clase: 'error', texto: 'Drive pendiente · ' + estado.error };
     var pendientes = cambios().total;
@@ -380,6 +510,10 @@
     iniciar: iniciar,
     enviar: enviar,
     probar: probar,
+    conectar: conectar,
+    restaurar: restaurar,
+    marcarVerificado: marcarVerificado,
+    datosLocalesVacios: datosLocalesVacios,
     configurar: configurar,
     configurado: configurado,
     url: url,

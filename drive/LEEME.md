@@ -87,14 +87,37 @@ quedan por enviar.
 | Piedras | cada piedra o grupo de piedras iguales: calidad, quilates, disponibles, estado y costo |
 | Productos | cada joya: piedras, metal, otros costos, costo, precio y si se vendió (y a quién) |
 | Ventas | cada venta: fecha, comprador, precio, estado y método de pago, deuda, costo y utilidad |
+| Historial | cada precio registrado: del mercado (oro, plata) o puesto a mano |
+| Ajustes | una sola fila con la configuración de la app (precios por calidad, metales, márgenes, SVP-9) |
 
 - Cada fila tiene su **ID**: si cambias algo en la app, se actualiza la misma fila.
+- Cada fila guarda también su ficha completa en la columna **Datos**, que está
+  oculta: es la que usa la app para restaurar. No la edites a mano.
 - Lo que borras en la app **no se elimina** de la hoja: queda la fecha en la
   columna **Borrado**, para no perder el historial.
 - La columna **Actualizado** dice cuándo llegó el último cambio de esa fila.
 - Puedes agregar columnas propias en la hoja (por ejemplo "Observaciones"): la app
   no las toca.
 - Las **fotos no se envían** (no caben en una celda); va cuántas tiene cada ficha.
+
+## Si se pierden los datos del navegador
+
+Los datos de la app viven en el navegador. Si se borra el historial o las cookies,
+si se cambia de computador o se reinstala el navegador, la app queda vacía. Para
+recuperarla:
+
+1. Abre la app → **Configuración → Google Drive**.
+2. Pega el **enlace** y la **clave** (por eso hay que guardarlos en un lugar seguro).
+3. Toca **Guardar y probar conexión**. La app ve que el navegador está vacío y que
+   Drive tiene datos, y pregunta si quieres traerlos: di que **sí**.
+
+También está el botón **Restaurar desde Drive**, para traer lo de Drive en
+cualquier momento. Si el navegador ya tenía datos, antes de reemplazarlos se
+descarga un respaldo `.json` con lo que había, por si acaso.
+
+Al restaurar vuelven las evaluaciones, lotes, piedras, productos, ventas, la
+configuración y el historial de precios. **Las fotos no**: no se guardan en Drive.
+Si el navegador las tenía, se conservan.
 
 ## Si algo falla
 
@@ -104,6 +127,8 @@ quedan por enviar.
 | *no se pudo conectar, revisa el enlace o la conexión* | Revisa que el enlace termine en `/exec` y que en "Quién tiene acceso" esté **Cualquier usuario**. |
 | *sin conexión* | No hay internet. No hay que hacer nada: se envía solo cuando vuelva. |
 | La hoja no cambia | En la app: **Configuración → Google Drive → Enviar todo ahora**. |
+| *Drive en pausa · toca "Guardar y probar conexión"* | Es a propósito: al conectar, la app revisa la hoja antes de enviar nada. Toca ese botón. |
+| *el Apps Script está desactualizado* | Pega el código nuevo de `drive/apps-script.gs` (con tu misma clave) y publica una **nueva versión** (ver abajo). |
 
 **Si cambias el código del Apps Script** (por ejemplo la clave): guarda, y luego
 **Implementar → Gestionar implementaciones →** lápiz ✏️ → en *Versión* elige

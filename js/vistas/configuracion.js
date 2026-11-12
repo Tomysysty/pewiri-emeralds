@@ -99,7 +99,9 @@
       '  <div class="fila-botones">',
       '    <button class="boton primario" id="probarDrive">Guardar y probar conexión</button>',
       '    <button class="boton" id="enviarDrive">Enviar todo ahora</button>',
+      '    <button class="boton" id="restaurarDrive" title="Trae a este navegador todo lo guardado en la hoja de Google">Restaurar desde Drive</button>',
       '  </div>',
+      '  <p class="pista" style="margin-top:.6rem">Si se borran los datos de este navegador (o cambias de computador), pega el enlace y la clave, y toca <strong>Restaurar desde Drive</strong>. Guarda el enlace y la clave en un lugar seguro: sin ellos no se puede volver a conectar.</p>',
       '</section>',
 
       '<section class="tarjeta">',
@@ -194,10 +196,19 @@
       Drive.configurar(UI.$('#driveUrl', raiz).value, UI.$('#driveClave', raiz).value);
       boton.disabled = true;
       boton.textContent = 'Probando…';
-      Drive.probar().then(function (r) {
+      Drive.conectar().then(function (r) {
         boton.disabled = false;
         boton.textContent = 'Guardar y probar conexión';
         if (!r.ok) { UI.toast('No se pudo conectar: ' + r.error + '.'); return; }
+        // Navegador vacío y Drive con datos: primero se ofrece traerlos, para
+        // que lo vacío de aquí no pise lo que hay allá.
+        if (r.ofrecerRestaurar) {
+          if (confirm('En «' + r.nombre + '» hay ' + r.registros + ' registros guardados y este navegador está vacío. ¿Traerlos aquí?')) {
+            restaurarDesdeDrive(false);
+            return;
+          }
+          Drive.marcarVerificado();
+        }
         UI.toast('Conectado a «' + r.nombre + '». Enviando tus datos…');
         Drive.enviar().then(function (e) {
           if (e.ok) UI.toast(e.enviados ? 'Listo: ' + e.enviados + ' registros quedaron en Drive.' : 'Drive ya estaba al día.');
@@ -209,8 +220,30 @@
       if (!Drive.configurado()) { UI.toast('Pega primero el enlace de la aplicación web.'); return; }
       Drive.enviar(true).then(function (e) {
         if (e.ok) UI.toast('Se enviaron ' + e.enviados + ' registros a Drive.');
+        else if (e.error) UI.toast('No se envió: ' + e.error + '.');
       });
     });
+
+    UI.$('#restaurarDrive', raiz).addEventListener('click', function () {
+      Drive.configurar(UI.$('#driveUrl', raiz).value || Drive.url(), UI.$('#driveClave', raiz).value || Drive.clave());
+      if (!Drive.configurado()) { UI.toast('Pega primero el enlace y la clave de Drive.'); return; }
+      var hayDatos = !Drive.datosLocalesVacios();
+      if (!confirm(hayDatos
+        ? 'Esto reemplaza lo que hay en este navegador por lo guardado en Drive. Antes se descarga un respaldo de lo actual, por si acaso. ¿Continuar?'
+        : 'Se traerá a este navegador todo lo guardado en Drive. ¿Continuar?')) return;
+      restaurarDesdeDrive(hayDatos);
+    });
+
+    function restaurarDesdeDrive(respaldarAntes) {
+      if (respaldarAntes) Store.exportar();
+      UI.toast('Trayendo los datos de Drive…');
+      Drive.restaurar().then(function (r) {
+        if (!r.ok) { UI.toast('No se pudo restaurar: ' + r.error + '.'); return; }
+        App.recargar();
+        UI.toast('Listo: se restauraron ' + r.total + ' registros' + (r.configuracion ? ' y la configuración' : '') + ' desde Drive.' +
+          (r.fotosConservadas ? ' Se conservaron las fotos de este navegador.' : ' Las fotos no se guardan en Drive.'));
+      });
+    }
 
     UI.$('#exportar', raiz).addEventListener('click', Store.exportar);
     UI.$('#importar', raiz).addEventListener('click', function () { UI.$('#archivoImportar', raiz).click(); });

@@ -5,7 +5,8 @@
  * Extensiones → Apps Script. Los pasos completos están en drive/LEEME.md.
  *
  * Qué hace: recibe lo que la app envía cada vez que se guarda algo y lo
- * escribe en cinco pestañas: Evaluaciones, Lotes, Piedras, Productos y Ventas.
+ * escribe en pestañas: Evaluaciones, Lotes, Piedras, Productos, Ventas,
+ * Historial (de precios) y Ajustes (la configuración de la app).
  *   - Cada fila se identifica por su ID: si ya existe se actualiza, si no
  *     se agrega. Nunca se reemplaza la hoja entera, así que abrir la app en
  *     un navegador vacío no borra nada de aquí.
@@ -13,6 +14,9 @@
  *     la columna "Borrado", para no perder el historial.
  *   - Las columnas se ubican por su nombre; si la app agrega una nueva,
  *     aparece al final sin desordenar las demás.
+ *   - La columna "Datos" (oculta) guarda la ficha completa de cada fila:
+ *     con ella la app puede restaurar todo desde aquí si se pierde lo que
+ *     tenía guardado en el navegador.
  */
 
 // ⚠️ Cambia esta clave por una tuya (letras y números) y escribe LA MISMA
@@ -20,10 +24,11 @@
 // nadie puede escribir en esta hoja aunque tenga el enlace.
 var CLAVE = 'CAMBIA-ESTA-CLAVE';
 
-var HOJAS = ['Evaluaciones', 'Lotes', 'Piedras', 'Productos', 'Ventas'];
+var HOJAS = ['Evaluaciones', 'Lotes', 'Piedras', 'Productos', 'Ventas', 'Historial', 'Ajustes'];
 var COL_ID = 'ID';
 var COL_ACTUALIZADO = 'Actualizado';
 var COL_BORRADO = 'Borrado';
+var COL_DATOS = 'Datos';
 
 /* La app envía todo por POST. */
 function doPost(e) {
@@ -37,7 +42,10 @@ function doPost(e) {
 
   var libro = SpreadsheetApp.getActiveSpreadsheet();
   if (datos.accion === 'probar') {
-    return responder({ ok: true, nombre: libro.getName(), url: libro.getUrl() });
+    return responder({ ok: true, nombre: libro.getName(), url: libro.getUrl(), registros: contarRegistros(libro) });
+  }
+  if (datos.accion === 'leer') {
+    return responder({ ok: true, hojas: leerTodo(libro) });
   }
 
   // Si llegan dos envíos a la vez, se escriben uno detrás del otro.
@@ -77,6 +85,9 @@ function escribir(libro, nombre, filas, borrados) {
   });
   hoja.getRange(1, 1, 1, encabezados.length).setValues([encabezados]).setFontWeight('bold');
   hoja.setFrozenRows(1);
+  // La ficha completa es para restaurar, no para leer: se oculta.
+  var colDatos = encabezados.indexOf(COL_DATOS);
+  if (colDatos >= 0) hoja.hideColumns(colDatos + 1);
 
   // En qué fila está cada ID.
   var ultima = hoja.getLastRow();
@@ -121,6 +132,35 @@ function escribir(libro, nombre, filas, borrados) {
   });
 
   return { nuevas: nuevas.length, actualizadas: actualizadas, borradas: marcadas };
+}
+
+/* Las fichas completas (columna Datos) de cada pestaña, sin las borradas.
+   Es lo que la app usa para restaurar. */
+function leerTodo(libro) {
+  var salida = {};
+  HOJAS.forEach(function (nombre) {
+    var hoja = libro.getSheetByName(nombre);
+    salida[nombre] = [];
+    if (!hoja || hoja.getLastRow() < 2) return;
+    var valores = hoja.getDataRange().getValues();
+    var encabezados = valores[0].map(String);
+    var colDatos = encabezados.indexOf(COL_DATOS);
+    var colBorrado = encabezados.indexOf(COL_BORRADO);
+    if (colDatos < 0) return;
+    valores.slice(1).forEach(function (fila) {
+      if (!fila[colDatos] || (colBorrado >= 0 && fila[colBorrado] !== '')) return;
+      salida[nombre].push(String(fila[colDatos]));
+    });
+  });
+  return salida;
+}
+
+/* Cuántas fichas se pueden restaurar (sin contar ajustes ni historial). */
+function contarRegistros(libro) {
+  var todo = leerTodo(libro);
+  return ['Evaluaciones', 'Lotes', 'Piedras', 'Productos', 'Ventas'].reduce(function (n, h) {
+    return n + (todo[h] || []).length;
+  }, 0);
 }
 
 function responder(objeto) {

@@ -86,10 +86,16 @@ historial del último año en el registro diario público `fawazahmed0/currency-
 
 ## Google Drive
 
-Todo lo que se guarda (evaluaciones, lotes, piedras, productos y ventas) se copia
-solo, unos segundos después, a una hoja de Google con una pestaña por tipo. Cada
-fila tiene su ID y se actualiza en su lugar; lo borrado queda marcado, no se elimina;
-las fotos no viajan. Sin internet, se envía cuando vuelva.
+Todo lo que se guarda (evaluaciones, lotes, piedras, productos y ventas, además de
+la configuración y el historial de precios) se copia solo, unos segundos después, a
+una hoja de Google con una pestaña por tipo. Cada fila tiene su ID y se actualiza en
+su lugar; lo borrado queda marcado, no se elimina; las fotos no viajan. Sin internet,
+se envía cuando vuelva.
+
+**Restaurar:** si se pierden los datos del navegador, se pegan el enlace y la clave
+en Configuración y la app ofrece traer todo desde Drive (también hay un botón
+**Restaurar desde Drive**). Al conectar un navegador vacío, la app revisa la hoja
+antes de enviar nada, para no pisar lo que ya hay allá.
 
 Se instala una sola vez por cuenta de Google, sin contraseñas ni claves de API: los
 pasos están en **[drive/LEEME.md](drive/LEEME.md)** y el código que se pega en Google
