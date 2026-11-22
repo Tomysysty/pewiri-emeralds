@@ -4,6 +4,12 @@ Herramienta interna de Pewiri Emeralds para caracterizar esmeraldas (sistema pro
 SVP-9), calcular el precio de lotes, piedras sueltas y joyas terminadas, llevar el
 inventario y registrar las ventas.
 
+![Inicio de la app](docs/inicio.jpg)
+
+![Caracterización SVP-9 con su huella digital](docs/caracterizacion.png)
+
+**HTML · CSS · JavaScript sin frameworks · gráfica de radar propia en SVG · Google Apps Script · GitHub Pages**
+
 ## Cómo abrirla
 
 - **En internet:** <https://tomysysty.github.io/pewiri-emeralds/> (GitHub Pages). Se
